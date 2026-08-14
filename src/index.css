@@ -1,0 +1,26 @@
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background-color: #0f111a;
+  background: 
+    radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 25%),
+    #0f111a;
+  background-attachment: fixed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Remove default focus outline on Recharts components when clicked */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-wrapper * {
+  outline: none !important;
+}
