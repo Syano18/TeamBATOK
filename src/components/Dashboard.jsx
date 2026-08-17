@@ -232,6 +232,25 @@ const FemaleBar = (props) => {
   return <Rectangle {...props} x={x} y={y} width={width} height={height} fill={fill} radius={[0, 3, 3, 0]} />;
 };
 
+const WrappedYAxisTick = ({ x, y, payload }) => {
+  const text = payload.value || '';
+  const parts = text.split(' (');
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={4} textAnchor="end" fill={COLORS.creamDim} fontSize={11.5}>
+        {parts.length === 1 ? (
+          <tspan x={-5} dy="0.32em">{parts[0]}</tspan>
+        ) : (
+          <>
+            <tspan x={-5} dy="-0.2em">{parts[0]}</tspan>
+            <tspan x={-5} dy="1.1em" fontSize={10} fill={COLORS.creamDim} opacity={0.7}>({parts[1]}</tspan>
+          </>
+        )}
+      </text>
+    </g>
+  );
+};
+
 export default function KalingaDashboard() {
   const [tab, setTab] = useState('overview');
   const [showInfo, setShowInfo] = useState(false);
@@ -307,17 +326,13 @@ export default function KalingaDashboard() {
     if (!src) return [];
     const ages = pyramidLevel === 'province' ? src.province : src.municipalities[pyramidLevel];
     if (!ages) return [];
-    // approximate male/female split per age group using overall province or muni ratio for that year
-    const totalsRec = pyramidLevel === 'province'
-      ? DATA.province_trend.find(d => d.year === pyramidYear)
-      : DATA.municipality_trend.find(d => d.year === pyramidYear && d.municipality === pyramidLevel);
-    const maleRatio = totalsRec && totalsRec.male ? totalsRec.male / (totalsRec.male + totalsRec.female) : 0.51;
     return DATA.age_groups.map(ag => {
-      const total = ages[ag] || 0;
+      const groupData = ages[ag] || { total: 0, male: 0, female: 0 };
       return {
         age: ag,
-        male: -Math.round(total * maleRatio),
-        female: Math.round(total * (1 - maleRatio)) };
+        male: -(groupData.male || 0),
+        female: groupData.female || 0
+      };
     }).reverse();
   }, [pyramidYear, pyramidLevel]);
 
@@ -819,7 +834,7 @@ export default function KalingaDashboard() {
           
           <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
             <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-              <SectionTitle note="Male and female counts are estimated per age band using each year's overall gender ratio, since the source only reports gender totals province/municipality-wide">Population Pyramid</SectionTitle>
+              <SectionTitle note="Male and female counts based on Philippine Statistics Authority census data">Population Pyramid</SectionTitle>
               <div style={{ flex: 1, minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={pyramidData} layout="vertical" stackOffset="sign" barCategoryGap="15%" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
@@ -869,8 +884,8 @@ export default function KalingaDashboard() {
       )}
 
       {tab === 'households' && (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Panel style={{ flex: '1.5 1 500px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
+          <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
               <SectionTitle note={`Total ${householdMetric === 'num_households' ? 'number of households' : 'household population'} per municipality, by census year`}>
                 Households by Municipality
@@ -900,7 +915,7 @@ export default function KalingaDashboard() {
             </div>
           </Panel>
 
-          <Panel style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column' }}>
+          <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
             <SectionTitle note="Household population ÷ number of households, by municipality">Average Household Size</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -921,8 +936,8 @@ export default function KalingaDashboard() {
       )}
 
       {tab === 'explorer' && (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Panel style={{ flex: '1.5 1 500px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
+          <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
               <SectionTitle note="2024 POPCEN — select a municipality to view its barangays">
                 Population by Barangay
@@ -936,14 +951,14 @@ export default function KalingaDashboard() {
               </div>
             </div>
             
-            <div style={{ height: 300, overflowY: 'auto', border: `1px solid ${COLORS.border}`, borderRadius: 8, paddingRight: 10 }}>
+            <div style={{ flex: '1 1 0px', minHeight: 300, overflowY: 'auto', border: `1px solid ${COLORS.border}`, borderRadius: 8, paddingRight: 10 }}>
               <div style={{ height: Math.max(300, explorerBarangays.length * 35) }}>
                 <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={explorerBarangays} layout="vertical" margin={{ left: 10, right: 20, top: 10, bottom: 10 }}
                   onClick={(e) => { if (e && e.activeLabel) setExplorerBgy(e.activeLabel); }}>
                   <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} tickFormatter={fmtCompact} />
-                  <YAxis type="category" dataKey="name" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} width={140} />
+                  <YAxis type="category" dataKey="name" stroke={COLORS.creamDim} tick={<WrappedYAxisTick />} width={130} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                   <Bar dataKey="total_population" name="Population" radius={[0, 4, 4, 0]} cursor="pointer">
                     {explorerBarangays.map((b, i) => (
@@ -960,11 +975,11 @@ export default function KalingaDashboard() {
           </Panel>
 
           {explorerBgy && explorerBgyTrend.length > 0 && (
-            <Panel style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column' }}>
+            <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
               <SectionTitle note={`${explorerBgy}, ${explorerMuni} — households and population, 2010 CPH – 2024 POPCEN`}>
                 Barangay {explorerBgy} Trend
               </SectionTitle>
-              <div style={{ height: 300 }}>
+              <div style={{ flex: 1, minHeight: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={explorerBgyTrend} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
                   <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
