@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, Rectangle, ComposedChart, LabelList } from 'recharts';
-import { Info, Users, Home, LayoutGrid, PieChart as PieChartIcon, TrendingUp, User, Map, ChevronDown, Database, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Info, Users, Home, LayoutGrid, PieChart as PieChartIcon, TrendingUp, User, Map, ChevronDown, Database, ArrowUp, ArrowDown, ArrowUpDown, X, MessageSquare } from 'lucide-react';
 import { DATA } from '../data/kalingaData';
 
 const COLORS = {
@@ -44,9 +44,15 @@ const TABS = [
 
 function CustomTooltip({ active, payload, label, suffix }) {
   if (!active || !payload || !payload.length) return null;
+  
+  let displayLabel = label;
+  if (label === 2012.5) displayLabel = '2010 – 2015';
+  else if (label === 2017.5) displayLabel = '2015 – 2020';
+  else if (label === 2022) displayLabel = '2020 – 2024';
+
   return (
     <div style={{ background: COLORS.panelAlt, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '10px 14px', fontSize: 12.5 }}>
-      <div style={{ color: COLORS.gold, fontWeight: 700, marginBottom: 4, letterSpacing: 0.3 }}>{label}</div>
+      <div style={{ color: COLORS.gold, fontWeight: 700, marginBottom: 4, letterSpacing: 0.3 }}>{displayLabel}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ color: COLORS.cream, display: 'flex', justifyContent: 'space-between', gap: 16 }}>
           <span style={{ color: p.color || p.fill }}>{p.name}</span>
@@ -252,6 +258,21 @@ const WrappedYAxisTick = ({ x, y, payload }) => {
 };
 
 export default function KalingaDashboard() {
+  const [showDisclaimer, setShowDisclaimer] = useState(() => {
+    return localStorage.getItem('hide_psa_disclaimer') !== 'true';
+  });
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const closeDisclaimer = () => {
+    if (dontShowAgain) {
+      localStorage.setItem('hide_psa_disclaimer', 'true');
+    }
+    setShowDisclaimer(false);
+  };
+
   const [tab, setTab] = useState('overview');
   const [showInfo, setShowInfo] = useState(false);
   const infoRef = useRef(null);
@@ -311,14 +332,33 @@ export default function KalingaDashboard() {
   ), []);
 
   const trendChartData = useMemo(() => {
-    return years.map(y => {
+    const rawYears = [2010, 2015, 2020, 2024];
+    const data = [];
+    for (let i = 0; i < rawYears.length; i++) {
+      const y = rawYears[i];
       const row = { year: y };
       selectedMunis.forEach(m => {
         const rec = DATA.municipality_trend.find(d => d.year === y && d.municipality === m);
         row[m] = rec ? rec.total_population : null;
       });
-      return row;
-    });
+      data.push(row);
+
+      if (i < rawYears.length - 1) {
+        const nextY = rawYears[i + 1];
+        const midRow = { year: (y + nextY) / 2 };
+        selectedMunis.forEach(m => {
+          const rec1 = DATA.municipality_trend.find(d => d.year === y && d.municipality === m);
+          const rec2 = DATA.municipality_trend.find(d => d.year === nextY && d.municipality === m);
+          if (rec1 && rec2 && rec1.total_population && rec2.total_population) {
+            midRow[m] = (rec1.total_population + rec2.total_population) / 2;
+            const pct = ((rec2.total_population - rec1.total_population) / rec1.total_population * 100).toFixed(1);
+            midRow[`${m}_pct`] = pct > 0 ? `+${pct}%` : `${pct}%`;
+          }
+        });
+        data.push(midRow);
+      }
+    }
+    return data;
   }, [selectedMunis]);
 
   const pyramidData = useMemo(() => {
@@ -351,12 +391,44 @@ export default function KalingaDashboard() {
     DATA.province_trend.map(d => ({ year: d.year, size: +(d.hh_population / d.num_households).toFixed(2) }))
   ), []);
 
-  const overviewTrendData = useMemo(() => (
-    DATA.province_trend.map(d => ({
-      ...d,
-      hh_size: d.num_households ? +( (d.hh_population || d.total_population) / d.num_households ).toFixed(2) : null
-    }))
-  ), []);
+  const overviewTrendData = useMemo(() => {
+    const rawYears = [2010, 2015, 2020, 2024];
+    const data = [];
+    for (let i = 0; i < rawYears.length; i++) {
+      const y = rawYears[i];
+      const d = DATA.province_trend.find(pt => pt.year === y);
+      data.push({
+        ...d,
+        hh_size: d.num_households ? +( (d.hh_population || d.total_population) / d.num_households ).toFixed(2) : null
+      });
+
+      if (i < rawYears.length - 1) {
+        const nextY = rawYears[i + 1];
+        const nextD = DATA.province_trend.find(pt => pt.year === nextY);
+        if (d && nextD) {
+           const midPop = (d.total_population + nextD.total_population) / 2;
+           const midHhPop = (d.hh_population + nextD.hh_population) / 2;
+           const midNumHh = (d.num_households + nextD.num_households) / 2;
+           const pct = ((nextD.total_population - d.total_population) / d.total_population * 100).toFixed(1);
+           const pop_pct = pct > 0 ? `+${pct}%` : `${pct}%`;
+           
+           const hh_pct_val = ((nextD.num_households - d.num_households) / d.num_households * 100).toFixed(1);
+           const hh_pct = hh_pct_val > 0 ? `+${hh_pct_val}%` : `${hh_pct_val}%`;
+           
+           data.push({
+             year: (y + nextY) / 2,
+             total_population: midPop,
+             hh_population: midHhPop,
+             num_households: midNumHh,
+             pop_pct: pop_pct,
+             hh_pct: hh_pct,
+             hh_size: +( (midHhPop || midPop) / midNumHh ).toFixed(2)
+           });
+        }
+      }
+    }
+    return data;
+  }, []);
 
   const muniAvgSizeTrendData = useMemo(() => (
     years.map(y => {
@@ -385,10 +457,41 @@ export default function KalingaDashboard() {
     if (!explorerBgy) return [];
     const t = DATA.barangay_trend[explorerMuni]?.[explorerBgy];
     if (!t) return [];
-    return t.map(d => ({
-      ...d,
-      hh_size: d.num_households ? +( (d.hh_population || d.total_population) / d.num_households ).toFixed(2) : null
-    }));
+    const sorted = [...t].sort((a,b) => a.year - b.year);
+    const data = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const d = sorted[i];
+      data.push({
+        ...d,
+        hh_size: d.num_households ? +( (d.hh_population || d.total_population) / d.num_households ).toFixed(2) : null,
+        hh_size_actual: d.num_households ? +( (d.hh_population || d.total_population) / d.num_households ).toFixed(2) : null
+      });
+
+      if (i < sorted.length - 1) {
+        const nextD = sorted[i + 1];
+        if (d && nextD) {
+           const midPop = (d.total_population + nextD.total_population) / 2;
+           const midHhPop = (d.hh_population + nextD.hh_population) / 2;
+           const midNumHh = (d.num_households + nextD.num_households) / 2;
+           const pct = ((nextD.total_population - d.total_population) / d.total_population * 100).toFixed(1);
+           const pop_pct = pct > 0 ? `+${pct}%` : `${pct}%`;
+           
+           const hh_pct_val = ((nextD.num_households - d.num_households) / d.num_households * 100).toFixed(1);
+           const hh_pct = hh_pct_val > 0 ? `+${hh_pct_val}%` : `${hh_pct_val}%`;
+           
+           data.push({
+             year: (d.year + nextD.year) / 2,
+             total_population: midPop,
+             hh_population: midHhPop,
+             num_households: midNumHh,
+             pop_pct: pop_pct,
+             hh_pct: hh_pct,
+             hh_size: midNumHh ? +( (midHhPop || midPop) / midNumHh ).toFixed(2) : null
+           });
+        }
+      }
+    }
+    return data;
   }, [explorerMuni, explorerBgy]);
 
   const genderPieLatest = useMemo(() => {
@@ -590,6 +693,57 @@ export default function KalingaDashboard() {
           border-color: rgba(255, 255, 255, 0.15);
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
+        
+        .review-button {
+          transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .review-button:hover {
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.6);
+          filter: brightness(1.1);
+        }
+        
+        .review-tooltip {
+          position: absolute;
+          right: 100%;
+          top: 50%;
+          margin-right: 14px;
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: #fff;
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          white-space: nowrap;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          transform: translateY(-50%) translateX(10px);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .review-button:hover .review-tooltip {
+          opacity: 1;
+          transform: translateY(-50%) translateX(0);
+        }
+        
+        .rating-btn {
+          transition: all 0.2s ease;
+        }
+        .rating-btn:hover {
+          transform: translateY(-2px);
+          background: var(--highlight-hover-bg) !important;
+          border-color: var(--highlight-color) !important;
+        }
+        .rating-btn:hover .emoji {
+          transform: scale(1.3);
+        }
+        .emoji {
+          display: inline-block;
+          transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
       `}</style>
 
       {/* Header */}
@@ -597,7 +751,7 @@ export default function KalingaDashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24 }}>
           
           <div style={{ flex: '1 1 auto', minWidth: 320, position: 'relative' }}>
-            <div style={{ color: COLORS.gold, fontSize: 15, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>
+            <div style={{ color: '#f43f5e', fontSize: 15, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>
               Province of Kalinga · Cordillera Administrative Region
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -648,6 +802,10 @@ export default function KalingaDashboard() {
                     </ul>
                     <div style={{ marginTop: 12, color: COLORS.creamDim, fontSize: 11, lineHeight: 1.4, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
                       The Philippine Statistics Authority (PSA) conducts these censuses as mandated by Republic Act No. 10625 (Philippine Statistical Act of 2013).
+                      <br /><br />
+                      <strong>Data Source:</strong> <a href="https://psada.psa.gov.ph/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.rust, textDecoration: 'none' }}>https://psada.psa.gov.ph/</a><br />
+                      <strong>Website:</strong> <a href="https://rssocar.psa.gov.ph/kalinga" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.rust, textDecoration: 'none' }}>rssocar.psa.gov.ph/kalinga</a><br />
+                      <strong>Follow us on Facebook:</strong> <a href="https://www.facebook.com/PSACARKalinga/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.rust, textDecoration: 'none' }}>PSA CAR Kalinga</a>
                     </div>
                   </div>
                 )}
@@ -657,23 +815,9 @@ export default function KalingaDashboard() {
               1 City and 7 Municipalities · 2010 CPH – 2024 POPCEN
             </div>
           </div>
-
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', flex: '2 1 auto' }}>
-            {['Kalinga', 'Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'].map(name => (
-              <img 
-                key={name} 
-                src={`/${name}.png`} 
-                alt={`${name} Logo`} 
-                style={{ 
-                  height: 75, 
-                  width: 'auto', 
-                  objectFit: 'contain', 
-                  filter: name === 'Kalinga' ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.5))' : 'drop-shadow(0 6px 12px rgba(0,0,0,0.3))'
-                }} 
-                className="logo-hover"
-                title={name === 'Kalinga' ? 'Province of Kalinga' : name === 'Tabuk' ? 'City of Tabuk' : `Municipality of ${name}`}
-              />
-            ))}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', flex: '2 1 auto' }}>
+            <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 75, width: 'auto', objectFit: 'contain' }} />
+            <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 110, width: 'auto', objectFit: 'contain' }} />
           </div>
         </div>
       </div>
@@ -712,13 +856,30 @@ export default function KalingaDashboard() {
             </button>
           );
         })}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginLeft: 'auto' }}>
+          {['Kalinga', 'Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'].map(name => (
+            <img 
+              key={name} 
+              src={`/${name}.png`} 
+              alt={`${name} Logo`} 
+              style={{ 
+                height: 32, 
+                width: 'auto', 
+                objectFit: 'contain', 
+                filter: name === 'Kalinga' ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.3))'
+              }} 
+              className="logo-hover"
+              title={name === 'Kalinga' ? 'Province of Kalinga' : name === 'Tabuk' ? 'City of Tabuk' : `Municipality of ${name}`}
+            />
+          ))}
+        </div>
       </div>
 
 
       {tab === 'overview' && (
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Combined population growth and average household size across the province, by census year">Province-Wide Population & Households</SectionTitle>
+            <SectionTitle note="Province-wide population and household growth across the four most recent census years">Province-Wide Population & Households</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={overviewTrendData} margin={{ left: 5, right: 25, top: 10, bottom: 0 }}>
@@ -729,23 +890,23 @@ export default function KalingaDashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} />
+                <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
                 <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={55} />
-                <YAxis yAxisId="right" orientation="right" hide domain={[3, 6]} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
-                <Area yAxisId="left" type="monotone" dataKey="total_population" name="Total Population" stroke={COLORS.rust} strokeWidth={2.5} fill="url(#popGrad)" dot={{ fill: COLORS.rust, r: 4 }} />
-                <Area yAxisId="left" type="monotone" dataKey="hh_population" name="Household Population" stroke={COLORS.male} strokeWidth={2.5} fillOpacity={0} strokeDasharray="5 5" dot={{ fill: COLORS.male, r: 4 }} />
-                <Line yAxisId="right" type="monotone" dataKey="hh_size" name="Avg. HH Size" stroke={COLORS.gold} strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4 }} connectNulls>
-                  <LabelList dataKey="hh_size" position="top" offset={10} fill="#ffffff" fontSize={13} fontWeight={600} formatter={(val) => val ? val.toFixed(1) : ''} />
-                </Line>
+                <Area yAxisId="left" type="monotone" dataKey="total_population" name="Total Population" stroke={COLORS.rust} strokeWidth={2.5} fill="url(#popGrad)" dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.rust} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.rust} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
+                  <LabelList dataKey="pop_pct" position="bottom" offset={10} fill={COLORS.rust} fontSize={12} fontWeight={600} />
+                </Area>
+                <Area yAxisId="left" type="monotone" dataKey="num_households" name="Number of Households" stroke={COLORS.male} strokeWidth={2.5} fillOpacity={0} strokeDasharray="5 5" dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.male} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.male} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
+                  <LabelList dataKey="hh_pct" position="bottom" offset={10} fill={COLORS.male} fontSize={12} fontWeight={600} />
+                </Area>
               </ComposedChart>
               </ResponsiveContainer>
             </div>
           </Panel>
 
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="2024 POPCEN — ranked by total population">Population by Municipality</SectionTitle>
+            <SectionTitle note="2024 POPCEN — ranked by total population">Population by City/Municipality</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={muniPop2024} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
@@ -755,7 +916,6 @@ export default function KalingaDashboard() {
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
                 <Bar dataKey="total_population" name="Total Population" fill={COLORS.rust} radius={[0, 4, 4, 0]} />
-                <Bar dataKey="hh_population" name="Household Population" fill={COLORS.male} radius={[0, 4, 4, 0]} />
               </BarChart>
               </ResponsiveContainer>
             </div>
@@ -766,7 +926,7 @@ export default function KalingaDashboard() {
       {tab === 'trends' && (
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Click municipalities to compare their population trajectories, 2010 CPH – 2024 POPCEN">Population Trends by Municipality</SectionTitle>
+            <SectionTitle note="Click city/municipalities to compare their population trajectories, 2010 CPH – 2024 POPCEN">Population Trends by City/Municipality</SectionTitle>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
               {DATA.municipalities.map(m => (
                 <Pill key={m} active={selectedMunis.includes(m)} onClick={() => {
@@ -778,12 +938,16 @@ export default function KalingaDashboard() {
               <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendChartData} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} />
+                <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
                 <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={50} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
                 {selectedMunis.map((m, i) => (
-                  <Line key={m} type="monotone" dataKey={m} stroke={MUNI_COLORS[DATA.municipalities.indexOf(m) % MUNI_COLORS.length]} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                  <Line key={m} type="monotone" dataKey={m} stroke={MUNI_COLORS[DATA.municipalities.indexOf(m) % MUNI_COLORS.length]} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={MUNI_COLORS[DATA.municipalities.indexOf(m) % MUNI_COLORS.length]} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={MUNI_COLORS[DATA.municipalities.indexOf(m) % MUNI_COLORS.length]} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
+                    {selectedMunis.length === 1 && (
+                      <LabelList dataKey={`${m}_pct`} position="bottom" offset={8} fontSize={11} fill={MUNI_COLORS[DATA.municipalities.indexOf(m) % MUNI_COLORS.length]} />
+                    )}
+                  </Line>
                 ))}
               </LineChart>
               </ResponsiveContainer>
@@ -791,7 +955,7 @@ export default function KalingaDashboard() {
           </Panel>
 
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Total population change from 2010 CPH to 2024 POPCEN, by municipality">Growth Comparison</SectionTitle>
+            <SectionTitle note="Total population change from 2010 CPH to 2024 POPCEN, by city/municipality">Growth Comparison</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={DATA.municipalities.map(m => {
@@ -834,7 +998,7 @@ export default function KalingaDashboard() {
           
           <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
             <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-              <SectionTitle note="Male and female counts based on Philippine Statistics Authority census data">Population Pyramid</SectionTitle>
+              <SectionTitle note="Age and sex distribution by 5-year age groups">Population Pyramid</SectionTitle>
               <div style={{ flex: 1, minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={pyramidData} layout="vertical" stackOffset="sign" barCategoryGap="15%" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
@@ -887,8 +1051,8 @@ export default function KalingaDashboard() {
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-              <SectionTitle note={`Total ${householdMetric === 'num_households' ? 'number of households' : 'household population'} per municipality, by census year`}>
-                Households by Municipality
+              <SectionTitle note={`Total ${householdMetric === 'num_households' ? 'number of households' : 'household population'} per city/municipality, by census year`}>
+                Households by City/Municipality
               </SectionTitle>
               <ModernSelect 
                 value={householdMetric}
@@ -916,7 +1080,7 @@ export default function KalingaDashboard() {
           </Panel>
 
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Household population ÷ number of households, by municipality">Average Household Size</SectionTitle>
+            <SectionTitle note="Household population ÷ number of households, by city/municipality">Average Household Size</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={muniAvgSizeTrendData} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
@@ -939,7 +1103,7 @@ export default function KalingaDashboard() {
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
-              <SectionTitle note="2024 POPCEN — select a municipality to view its barangays">
+              <SectionTitle note="2024 POPCEN — select a city/municipality to view its barangays">
                 Population by Barangay
               </SectionTitle>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: -6 }}>
@@ -977,21 +1141,21 @@ export default function KalingaDashboard() {
           {explorerBgy && explorerBgyTrend.length > 0 && (
             <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
               <SectionTitle note={`${explorerBgy}, ${explorerMuni} — households and population, 2010 CPH – 2024 POPCEN`}>
-                Barangay {explorerBgy} Trend
+                Barangay Trend
               </SectionTitle>
               <div style={{ flex: 1, minHeight: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={explorerBgyTrend} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
                   <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} />
+                  <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
                   <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={50} />
-                  <YAxis yAxisId="right" orientation="right" hide domain={[2, 7]} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
-                  <Line yAxisId="left" type="monotone" dataKey="total_population" name="Population" stroke={COLORS.rust} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
-                  <Line yAxisId="left" type="monotone" dataKey="num_households" name="Households" stroke={COLORS.teal} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
-                  <Line yAxisId="right" type="monotone" dataKey="hh_size" name="Avg. HH Size" stroke={COLORS.gold} strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4 }} connectNulls>
-                    <LabelList dataKey="hh_size" position="top" offset={10} fill="#ffffff" fontSize={13} fontWeight={600} formatter={(val) => val ? val.toFixed(1) : ''} />
+                  <Line yAxisId="left" type="monotone" dataKey="total_population" name="Population" stroke={COLORS.rust} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.rust} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.rust} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
+                    <LabelList dataKey="pop_pct" position="bottom" offset={8} fontSize={11} fill={COLORS.rust} />
+                  </Line>
+                  <Line yAxisId="left" type="monotone" dataKey="num_households" name="Households" stroke={COLORS.teal} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.teal} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.teal} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
+                    <LabelList dataKey="hh_pct" position="bottom" offset={8} fontSize={11} fill={COLORS.teal} />
                   </Line>
                 </LineChart>
               </ResponsiveContainer>
@@ -1040,7 +1204,7 @@ export default function KalingaDashboard() {
                 <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}`, background: COLORS.bg }}>
                     <th onClick={() => handleSort('name')} style={{ cursor: 'pointer', textAlign: 'left', padding: '12px 14px', color: COLORS.creamDim, fontWeight: 600 }}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>{tableLevel === 'province' ? 'Province' : tableLevel === 'municipality' ? 'Municipality' : 'Barangay'} {getSortIcon('name')}</div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>{tableLevel === 'province' ? 'Province' : tableLevel === 'municipality' ? 'City/Municipality' : 'Barangay'} {getSortIcon('name')}</div>
                     </th>
                     <th onClick={() => handleSort('total_population')} style={{ cursor: 'pointer', textAlign: 'right', padding: '12px 14px', color: COLORS.creamDim, fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Total Population {getSortIcon('total_population')}</div>
@@ -1076,6 +1240,364 @@ export default function KalingaDashboard() {
           </Panel>
         </div>
       )}
+
+      {showDisclaimer && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
+        }}>
+          {/* ... disclaimer modal body ... */}
+          <div className="animate-enter" style={{
+            background: COLORS.panelAlt,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 12,
+            padding: 30,
+            maxWidth: 500,
+            width: '90%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            position: 'relative'
+          }}>
+            <button 
+              onClick={closeDisclaimer}
+              title="Close"
+              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: COLORS.creamDim, cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+            <h2 style={{ marginTop: 0, color: COLORS.rust, fontSize: 22, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Info size={24} />
+              Data Source Disclaimer
+            </h2>
+            <p style={{ color: COLORS.cream, fontSize: 14, lineHeight: 1.6, marginTop: 16 }}>
+              The demographic and household information presented in this dashboard is based on official census data from the <strong>Philippine Statistics Authority (PSA)</strong>, with the following reference dates:
+            </p>
+            <ul style={{ color: COLORS.creamDim, fontSize: 14, lineHeight: 1.6, marginTop: 8, paddingLeft: 24 }}>
+              <li>2010 CPH (May 1, 2010)</li>
+              <li>2015 POPCEN (August 1, 2015)</li>
+              <li>2020 CPH (May 1, 2020)</li>
+              <li>2024 POPCEN (July 1, 2024)</li>
+            </ul>
+            <p style={{ color: COLORS.creamDim, fontSize: 14, lineHeight: 1.6, marginTop: 12 }}>
+              <strong>Source:</strong> <a href="https://psada.psa.gov.ph/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.rust, textDecoration: 'none' }}>https://psada.psa.gov.ph/</a><br />
+              <strong>Website:</strong> <a href="https://rssocar.psa.gov.ph/kalinga" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.rust, textDecoration: 'none' }}>rssocar.psa.gov.ph/kalinga</a><br />
+              <strong>Follow us on Facebook:</strong> <a href="https://www.facebook.com/PSACARKalinga/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.rust, textDecoration: 'none' }}>PSA CAR Kalinga</a>
+            </p>
+            
+            <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input 
+                type="checkbox" 
+                id="dontShowAgain" 
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                style={{ cursor: 'pointer', width: 16, height: 16, accentColor: COLORS.rust }}
+              />
+              <label htmlFor="dontShowAgain" style={{ color: COLORS.creamDim, fontSize: 13, cursor: 'pointer', userSelect: 'none' }}>
+                Do not show this message again
+              </label>
+            </div>
+            
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={closeDisclaimer}
+                style={{
+                  background: COLORS.rust,
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReviewModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
+        }}>
+          <div className="animate-enter" style={{
+            background: COLORS.panelAlt,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 12,
+            padding: 30,
+            maxWidth: 450,
+            width: '90%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            position: 'relative',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <button 
+              onClick={() => {
+                setShowReviewModal(false);
+                setReviewForm({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
+              }}
+              title="Close"
+              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: COLORS.creamDim, cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+            <h2 style={{ marginTop: 0, color: '#10b981', fontSize: 22, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <MessageSquare size={24} />
+              Leave a Review
+            </h2>
+            <p style={{ color: COLORS.creamDim, fontSize: 14, marginBottom: 24 }}>
+              We'd love to hear your thoughts! Please fill out the form below.
+            </p>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (reviewForm.q1 === 0 || reviewForm.q2 === 0) {
+                alert("Please provide a rating for both questions before submitting.");
+                return;
+              }
+              
+              setIsSubmitting(true);
+              try {
+                const response = await fetch('/api/reviews', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(reviewForm)
+                });
+                
+                if (response.ok) {
+                  alert("Thank you for your review!");
+                  setShowReviewModal(false);
+                  setReviewForm({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
+                } else {
+                  const errData = await response.json();
+                  alert("Failed to submit review: " + (errData.error || "Unknown error"));
+                }
+              } catch (error) {
+                console.error("Submission error:", error);
+                alert("Failed to connect to the server. Please ensure the backend is running.");
+              } finally {
+                setIsSubmitting(false);
+              }
+            }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              
+              <div>
+                <label style={{ display: 'block', color: COLORS.cream, fontSize: 13, marginBottom: 6 }}>Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={reviewForm.name}
+                  onChange={(e) => setReviewForm({...reviewForm, name: e.target.value})}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 6, background: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, color: COLORS.cream, outline: 'none' }} 
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: COLORS.cream, fontSize: 13, marginBottom: 6 }}>Email Address</label>
+                <input 
+                  type="email" 
+                  required
+                  value={reviewForm.email}
+                  onChange={(e) => setReviewForm({...reviewForm, email: e.target.value})}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 6, background: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, color: COLORS.cream, outline: 'none' }} 
+                  placeholder="Enter your email"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: COLORS.cream, fontSize: 13, marginBottom: 6 }}>Contact No.</label>
+                <input 
+                  type="text" 
+                  value={reviewForm.contact}
+                  onChange={(e) => setReviewForm({...reviewForm, contact: e.target.value})}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 6, background: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, color: COLORS.cream, outline: 'none' }} 
+                  placeholder="Enter your contact number"
+                />
+              </div>
+
+              {/* Question 1 */}
+              <div>
+                <label style={{ display: 'block', color: COLORS.cream, fontSize: 13, marginBottom: 4 }}>
+                  <strong>Question 1: Usability & Performance</strong>
+                </label>
+                <div style={{ color: COLORS.creamDim, fontSize: 12, marginBottom: 10 }}>
+                  "How easy and responsive was it to navigate and use the interactive dashboard?"
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  {[
+                    { val: 1, em: '😡', label: 'Very Difficult' },
+                    { val: 2, em: '🙁', label: 'Difficult' },
+                    { val: 3, em: '😐', label: 'Neutral' },
+                    { val: 4, em: '🙂', label: 'Easy' },
+                    { val: 5, em: '🤩', label: 'Very Easy' }
+                  ].map(rating => {
+                    const c = rating.val <= 2 ? '#ef4444' : rating.val === 3 ? '#f59e0b' : '#10b981';
+                    const bg = rating.val <= 2 ? 'rgba(239, 68, 68, 0.2)' : rating.val === 3 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+                    const hbg = rating.val <= 2 ? 'rgba(239, 68, 68, 0.15)' : rating.val === 3 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+                    return (
+                    <button
+                      key={rating.val}
+                      type="button"
+                      onClick={() => setReviewForm({...reviewForm, q1: rating.val})}
+                      title={rating.label}
+                      className="rating-btn"
+                      style={{
+                        '--highlight-color': c,
+                        '--highlight-bg': bg,
+                        '--highlight-hover-bg': hbg,
+                        flex: 1,
+                        background: reviewForm.q1 === rating.val ? bg : 'rgba(0,0,0,0.2)',
+                        border: `1px solid ${reviewForm.q1 === rating.val ? c : COLORS.border}`,
+                        borderRadius: 8,
+                        padding: '10px 4px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 6,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span className="emoji" style={{ fontSize: 24, opacity: reviewForm.q1 === rating.val || reviewForm.q1 === 0 ? 1 : 0.6 }}>{rating.em}</span>
+                      <span style={{ fontSize: 10, color: reviewForm.q1 === rating.val ? c : COLORS.creamDim, textAlign: 'center', lineHeight: 1.2 }}>{rating.val}</span>
+                    </button>
+                  )})}
+                </div>
+              </div>
+
+              {/* Question 2 */}
+              <div>
+                <label style={{ display: 'block', color: COLORS.cream, fontSize: 13, marginBottom: 4 }}>
+                  <strong>Question 2: Value & Clarity</strong>
+                </label>
+                <div style={{ color: COLORS.creamDim, fontSize: 12, marginBottom: 10 }}>
+                  "How satisfied are you with the relevance, accuracy, and clarity of the dashboard's data and content?"
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  {[
+                    { val: 1, em: '😡', label: 'Very Dissatisfied' },
+                    { val: 2, em: '🙁', label: 'Dissatisfied' },
+                    { val: 3, em: '😐', label: 'Neutral' },
+                    { val: 4, em: '🙂', label: 'Satisfied' },
+                    { val: 5, em: '🤩', label: 'Very Satisfied' }
+                  ].map(rating => {
+                    const c = rating.val <= 2 ? '#ef4444' : rating.val === 3 ? '#f59e0b' : '#10b981';
+                    const bg = rating.val <= 2 ? 'rgba(239, 68, 68, 0.2)' : rating.val === 3 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+                    const hbg = rating.val <= 2 ? 'rgba(239, 68, 68, 0.15)' : rating.val === 3 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+                    return (
+                    <button
+                      key={rating.val}
+                      type="button"
+                      onClick={() => setReviewForm({...reviewForm, q2: rating.val})}
+                      title={rating.label}
+                      className="rating-btn"
+                      style={{
+                        '--highlight-color': c,
+                        '--highlight-bg': bg,
+                        '--highlight-hover-bg': hbg,
+                        flex: 1,
+                        background: reviewForm.q2 === rating.val ? bg : 'rgba(0,0,0,0.2)',
+                        border: `1px solid ${reviewForm.q2 === rating.val ? c : COLORS.border}`,
+                        borderRadius: 8,
+                        padding: '10px 4px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 6,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span className="emoji" style={{ fontSize: 24, opacity: reviewForm.q2 === rating.val || reviewForm.q2 === 0 ? 1 : 0.6 }}>{rating.em}</span>
+                      <span style={{ fontSize: 10, color: reviewForm.q2 === rating.val ? c : COLORS.creamDim, textAlign: 'center', lineHeight: 1.2 }}>{rating.val}</span>
+                    </button>
+                  )})}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: COLORS.cream, fontSize: 13, marginBottom: 6 }}>Your Review</label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={reviewForm.body}
+                  onChange={(e) => setReviewForm({...reviewForm, body: e.target.value})}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 6, background: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, color: COLORS.cream, outline: 'none', resize: 'vertical' }} 
+                  placeholder="Tell us what you think..."
+                />
+              </div>
+
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <input 
+                  type="checkbox" 
+                  id="privacyConsent"
+                  required
+                  style={{ marginTop: 4, cursor: 'pointer', width: 16, height: 16, accentColor: '#10b981', flexShrink: 0 }}
+                />
+                <label htmlFor="privacyConsent" style={{ color: COLORS.creamDim, fontSize: 12, lineHeight: 1.5, cursor: 'pointer' }}>
+                  By submitting this form, I agree to the collection and processing of my personal information in compliance with the <strong>Data Privacy Act of 2012 (R.A. 10173)</strong>. The information provided will be used solely for the purpose of improving our dashboard and addressing your feedback.
+                </label>
+              </div>
+
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'center' }}>
+                {isSubmitting && (
+                  <span style={{ color: '#38bdf8', fontSize: 13, fontWeight: 500, marginRight: 'auto', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
+                    Please wait, sending review to Admin...
+                  </span>
+                )}
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setReviewForm({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
+                  }}
+                  style={{ background: 'transparent', color: COLORS.creamDim, border: 'none', padding: '10px 20px', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{ background: isSubmitting ? '#6b7280' : '#10b981', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+                >
+                  {isSubmitting ? 'Sending...' : 'Submit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Review Button */}
+      <a 
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          setShowReviewModal(true);
+        }}
+        className="review-button"
+        style={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+          background: '#10b981',
+          color: '#fff',
+          padding: 12,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textDecoration: 'none',
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+          zIndex: 9000
+        }}
+      >
+        <span className="review-tooltip">Please leave us a review</span>
+        <MessageSquare size={18} />
+      </a>
 
     </div>
     </>
