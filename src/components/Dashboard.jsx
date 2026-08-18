@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, Rectangle, ComposedChart, LabelList } from 'recharts';
-import { Info, Users, Home, LayoutGrid, PieChart as PieChartIcon, TrendingUp, User, Map, ChevronDown, Database, ArrowUp, ArrowDown, ArrowUpDown, X, MessageSquare } from 'lucide-react';
+import { Info, Users, Home, LayoutGrid, PieChart as PieChartIcon, TrendingUp, User, Map, ChevronDown, Database, ArrowUp, ArrowDown, ArrowUpDown, X, MessageSquare, Loader2 } from 'lucide-react';
 import { DATA } from '../data/kalingaData';
 
 const COLORS = {
@@ -45,10 +45,9 @@ const TABS = [
 function CustomTooltip({ active, payload, label, suffix }) {
   if (!active || !payload || !payload.length) return null;
   
+  if (label === 2012.5 || label === 2017.5 || label === 2022) return null;
+  
   let displayLabel = label;
-  if (label === 2012.5) displayLabel = '2010 – 2015';
-  else if (label === 2017.5) displayLabel = '2015 – 2020';
-  else if (label === 2022) displayLabel = '2020 – 2024';
 
   return (
     <div style={{ background: COLORS.panelAlt, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '10px 14px', fontSize: 12.5 }}>
@@ -263,6 +262,7 @@ export default function KalingaDashboard() {
   });
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -816,8 +816,9 @@ export default function KalingaDashboard() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', flex: '2 1 auto' }}>
-            <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 75, width: 'auto', objectFit: 'contain' }} />
-            <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 110, width: 'auto', objectFit: 'contain' }} />
+            <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 90, width: 'auto', objectFit: 'contain' }} />
+            <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 125, width: 'auto', objectFit: 'contain' }} />
+            <img src="/Kalinga.png" alt="Province of Kalinga Logo" title="Province of Kalinga" style={{ height: 90, width: 'auto', objectFit: 'contain' }} />
           </div>
         </div>
       </div>
@@ -857,7 +858,7 @@ export default function KalingaDashboard() {
           );
         })}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginLeft: 'auto' }}>
-          {['Kalinga', 'Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'].map(name => (
+          {['Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'].map(name => (
             <img 
               key={name} 
               src={`/${name}.png`} 
@@ -865,11 +866,9 @@ export default function KalingaDashboard() {
               style={{ 
                 height: 32, 
                 width: 'auto', 
-                objectFit: 'contain', 
-                filter: name === 'Kalinga' ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.3))'
+                objectFit: 'contain'
               }} 
-              className="logo-hover"
-              title={name === 'Kalinga' ? 'Province of Kalinga' : name === 'Tabuk' ? 'City of Tabuk' : `Municipality of ${name}`}
+              title={name === 'Tabuk' ? 'City of Tabuk' : `Municipality of ${name}`}
             />
           ))}
         </div>
@@ -1169,7 +1168,7 @@ export default function KalingaDashboard() {
       {tab === 'tables' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
           <Panel style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16, flex: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 4, flex: 'none' }}>
               <SectionTitle note="Comprehensive census data across multiple geographic levels and years">
                 Statistical Data Tables
               </SectionTitle>
@@ -1192,10 +1191,15 @@ export default function KalingaDashboard() {
             </div>
 
             {tableLevel === 'barangay' && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
-                {DATA.municipalities.map(m => (
-                  <Pill key={m} active={tableMuni === m} onClick={() => setTableMuni(m)}>{m}</Pill>
-                ))}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ color: COLORS.creamDim, fontSize: 12.5, marginBottom: 8, fontStyle: 'italic' }}>
+                  Click a City/Municipality below to view its Barangays:
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {DATA.municipalities.map(m => (
+                    <Pill key={m} active={tableMuni === m} onClick={() => setTableMuni(m)}>{m}</Pill>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1370,7 +1374,7 @@ export default function KalingaDashboard() {
                 });
                 
                 if (response.ok) {
-                  alert("Thank you for your review!");
+                  setShowSuccessModal(true);
                   setShowReviewModal(false);
                   setReviewForm({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
                 } else {
@@ -1543,11 +1547,6 @@ export default function KalingaDashboard() {
               </div>
 
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'center' }}>
-                {isSubmitting && (
-                  <span style={{ color: '#38bdf8', fontSize: 13, fontWeight: 500, marginRight: 'auto', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
-                    Please wait, sending review to Admin...
-                  </span>
-                )}
                 <button 
                   type="button"
                   onClick={() => {
@@ -1567,6 +1566,69 @@ export default function KalingaDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Modal */}
+      {isSubmitting && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20
+        }}>
+          <div className="animate-enter" style={{
+            background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 16,
+            padding: '40px 30px', maxWidth: 400, width: '100%', textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative'
+          }}>
+            <div style={{ width: 64, height: 64, background: 'rgba(56, 189, 248, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#38bdf8' }}>
+              <Loader2 size={32} style={{ animation: 'spin 1.5s linear infinite' }} />
+            </div>
+            <h2 style={{ marginTop: 0, color: COLORS.cream, fontSize: 24, marginBottom: 12, fontFamily: "'Space Grotesk', sans-serif" }}>
+              Sending Review
+            </h2>
+            <p style={{ color: COLORS.creamDim, fontSize: 15, lineHeight: 1.6, margin: 0 }}>
+              Please wait, sending review to Admin...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20
+        }}>
+          <div className="animate-enter" style={{
+            background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 16,
+            padding: '40px 30px', maxWidth: 400, width: '100%', textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative'
+          }}>
+            <button 
+              onClick={() => setShowSuccessModal(false)}
+              title="Close"
+              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: COLORS.creamDim, cursor: 'pointer', padding: 4 }}
+            >
+              <X size={20} />
+            </button>
+            <div style={{ width: 64, height: 64, background: 'rgba(16, 185, 129, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#10b981' }}>
+              <MessageSquare size={32} />
+            </div>
+            <h2 style={{ marginTop: 0, color: COLORS.cream, fontSize: 24, marginBottom: 12, fontFamily: "'Space Grotesk', sans-serif" }}>
+              Review Sent!
+            </h2>
+            <p style={{ color: COLORS.creamDim, fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+              Thank you for providing your feedback and it means a lot to us ❤️
+            </p>
+            <button 
+              onClick={() => setShowSuccessModal(false)}
+              style={{ background: '#10b981', color: '#fff', border: 'none', padding: '12px 30px', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer', width: '100%', transition: 'background 0.2s' }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
