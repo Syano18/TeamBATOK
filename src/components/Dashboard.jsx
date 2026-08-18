@@ -816,9 +816,9 @@ export default function KalingaDashboard() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', flex: '2 1 auto' }}>
-            <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 90, width: 'auto', objectFit: 'contain' }} />
-            <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 125, width: 'auto', objectFit: 'contain' }} />
-            <img src="/Kalinga.png" alt="Province of Kalinga Logo" title="Province of Kalinga" style={{ height: 90, width: 'auto', objectFit: 'contain' }} />
+            <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
+            <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 85, width: 'auto', objectFit: 'contain' }} />
+            <img src="/Kalinga.png" alt="Province of Kalinga Logo" title="Province of Kalinga" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
           </div>
         </div>
       </div>
