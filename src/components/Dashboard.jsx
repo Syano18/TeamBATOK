@@ -564,8 +564,8 @@ export default function KalingaDashboard() {
     }}>
       <div style={{ background: COLORS.panelAlt, padding: '40px', borderRadius: 16, border: `1px solid ${COLORS.border}`, maxWidth: 450, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
         <h2 style={{ color: COLORS.rust, marginTop: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Screen Too Small</h2>
-        <p style={{ color: COLORS.creamDim, lineHeight: 1.6, fontSize: 15 }}>We regret to inform you that this dashboard was designed to be viewed on ICT equipment with large screens like Desktops and Laptops.</p>
-        <p style={{ color: COLORS.creamDim, lineHeight: 1.6, fontSize: 15, marginBottom: 0 }}>Please encourage them to open it in Desktop and Laptops to appreciate the animations and changes of charts and graphs.</p>
+        <p style={{ color: COLORS.creamDim, lineHeight: 1.6, fontSize: 15 }}>We regret to inform you that this dashboard was designed to be viewed on a large screens like Desktops and Laptops.</p>
+        <p style={{ color: COLORS.creamDim, lineHeight: 1.6, fontSize: 15, marginBottom: 0 }}>Please open it on Desktop or Laptop.</p>
       </div>
     </div>
     <div className="dashboard-wrapper" style={{
