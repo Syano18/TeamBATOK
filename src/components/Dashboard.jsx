@@ -49,6 +49,13 @@ function CustomTooltip({ active, payload, label, suffix }) {
   
   let displayLabel = label;
 
+  const male = payload.find(p => p.name === 'Male');
+  const female = payload.find(p => p.name === 'Female');
+  let sexRatio = null;
+  if (male && female && Math.abs(female.value) > 0) {
+    sexRatio = ((Math.abs(male.value) / Math.abs(female.value)) * 100).toFixed(1);
+  }
+
   return (
     <div style={{ background: COLORS.panelAlt, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '10px 14px', fontSize: 12.5 }}>
       <div style={{ color: COLORS.gold, fontWeight: 700, marginBottom: 4, letterSpacing: 0.3 }}>{displayLabel}</div>
@@ -58,6 +65,12 @@ function CustomTooltip({ active, payload, label, suffix }) {
           <span style={{ fontWeight: 600 }}>{fmt(p.value)}{suffix || ''}</span>
         </div>
       ))}
+      {sexRatio && (
+        <div style={{ color: COLORS.cream, display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${COLORS.border}` }}>
+          <span>Sex Ratio</span>
+          <span style={{ fontWeight: 600, color: COLORS.rust }}>{sexRatio}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -890,7 +903,7 @@ export default function KalingaDashboard() {
                 </defs>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
-                <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={55} />
+                <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={65} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
                 <Area yAxisId="left" type="monotone" dataKey="total_population" name="Total Population" stroke={COLORS.rust} strokeWidth={2.5} fill="url(#popGrad)" dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.rust} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.rust} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
@@ -925,7 +938,7 @@ export default function KalingaDashboard() {
       {tab === 'trends' && (
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Click city/municipalities to compare their population trajectories, 2010 CPH – 2024 POPCEN">Population Trends by City/Municipality</SectionTitle>
+            <SectionTitle note="Click city/municipalities to compare their population trajectories, 2010 CPH – 2024 POPCEN">Total Population Trends by City/Municipality</SectionTitle>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
               {DATA.municipalities.map(m => (
                 <Pill key={m} active={selectedMunis.includes(m)} onClick={() => {
@@ -935,10 +948,10 @@ export default function KalingaDashboard() {
             </div>
             <div style={{ flex: 1 , minHeight: 240 }}>
               <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendChartData} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
+              <LineChart data={trendChartData} margin={{ left: 5, right: 20, top: 10, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
-                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={50} />
+                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={65} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
                 {selectedMunis.map((m, i) => (
@@ -961,10 +974,10 @@ export default function KalingaDashboard() {
                 const y10 = DATA.municipality_trend.find(d => d.year === 2010 && d.municipality === m);
                 const y24 = DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === m);
                 return { municipality: m, growth: +pctChange(y10.total_population, y24.total_population) };
-              }).sort((a,b) => b.growth - a.growth)} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
+              }).sort((a,b) => b.growth - a.growth)} margin={{ left: 5, right: 20, top: 10, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="municipality" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} unit="%" width={50} />
+                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} unit="%" width={55} />
                 <Tooltip content={<CustomTooltip suffix="%" />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="growth" name="Growth 2010 CPH–2024 POPCEN" radius={[4, 4, 0, 0]}>
                   {DATA.municipalities.map((m, i) => <Cell key={i} fill={COLORS.gold} />)}
@@ -1006,6 +1019,14 @@ export default function KalingaDashboard() {
                 <YAxis type="category" dataKey="age" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} width={70} />
                 <Tooltip content={({active, payload, label}) => {
                   if (!active || !payload || !payload.length) return null;
+                  
+                  const male = payload.find(p => p.name === 'Male');
+                  const female = payload.find(p => p.name === 'Female');
+                  let sexRatio = null;
+                  if (male && female && Math.abs(female.value) > 0) {
+                    sexRatio = ((Math.abs(male.value) / Math.abs(female.value)) * 100).toFixed(1);
+                  }
+
                   return (
                     <div style={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '10px 14px', fontSize: 12.5 }}>
                       <div style={{ color: COLORS.gold, fontWeight: 700, marginBottom: 4 }}>Ages {label}</div>
@@ -1015,6 +1036,12 @@ export default function KalingaDashboard() {
                           <span style={{ fontWeight: 600 }}>{fmt(Math.abs(p.value))}</span>
                         </div>
                       ))}
+                      {sexRatio && (
+                        <div style={{ color: COLORS.cream, display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${COLORS.border}` }}>
+                          <span>Sex Ratio</span>
+                          <span style={{ fontWeight: 600, color: COLORS.rust }}>{sexRatio}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
@@ -1027,13 +1054,13 @@ export default function KalingaDashboard() {
           </Panel>
 
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Total male vs. female residents, by census year">Gender Balance Over Time</SectionTitle>
+            <SectionTitle note="Total male vs. female residents, by census year">Sex Ratio</SectionTitle>
             <div style={{ flex: 1, minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pyramidLevel === 'province' ? DATA.province_trend.filter(d => d.male != null) : DATA.municipality_trend.filter(d => d.municipality === pyramidLevel && d.male != null)} margin={{ left: 0, right: 20, top: 35, bottom: 0 }}>
+              <BarChart data={pyramidLevel === 'province' ? DATA.province_trend.filter(d => d.male != null) : DATA.municipality_trend.filter(d => d.municipality === pyramidLevel && d.male != null)} margin={{ left: 5, right: 20, top: 35, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} />
-                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={50} />
+                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={65} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Legend content={<CustomLegend />} wrapperStyle={{ paddingLeft: 50, paddingRight: 20 }} />
                 <Bar dataKey="male" name="Male" fill={COLORS.male} radius={[4,4,0,0]} />
@@ -1064,10 +1091,10 @@ export default function KalingaDashboard() {
             </div>
             <div style={{ flex: 1 , minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={householdsChartData} barCategoryGap="5%" barGap={1} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
+              <BarChart data={householdsChartData} barCategoryGap="5%" barGap={1} margin={{ left: 5, right: 20, top: 10, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} />
-                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={50} />
+                <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={65} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Legend wrapperStyle={{ fontSize: 12, color: COLORS.creamDim }} />
                 {DATA.municipalities.map((m, i) => (
@@ -1082,7 +1109,7 @@ export default function KalingaDashboard() {
             <SectionTitle note="Household population ÷ number of households, by city/municipality">Average Household Size</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={muniAvgSizeTrendData} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
+                  <LineChart data={muniAvgSizeTrendData} margin={{ left: 0, right: 20, top: 10, bottom: 0 }}>
                     <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} />
                     <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} domain={[3, 'auto']} width={40} />
@@ -1103,7 +1130,7 @@ export default function KalingaDashboard() {
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
               <SectionTitle note="2024 POPCEN — select a city/municipality to view its barangays">
-                Population by Barangay
+                Total Population by Barangay
               </SectionTitle>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: -6 }}>
                 {DATA.municipalities.map(m => (
@@ -1123,7 +1150,7 @@ export default function KalingaDashboard() {
                   <XAxis type="number" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} tickFormatter={fmtCompact} />
                   <YAxis type="category" dataKey="name" stroke={COLORS.creamDim} tick={<WrappedYAxisTick />} width={130} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Bar dataKey="total_population" name="Population" radius={[0, 4, 4, 0]} cursor="pointer">
+                  <Bar dataKey="total_population" name="Total Population" radius={[0, 4, 4, 0]} cursor="pointer">
                     {explorerBarangays.map((b, i) => (
                       <Cell key={i} fill={b.name === explorerBgy ? COLORS.gold : COLORS.rust} />
                     ))}
@@ -1144,13 +1171,13 @@ export default function KalingaDashboard() {
               </SectionTitle>
               <div style={{ flex: 1, minHeight: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={explorerBgyTrend} margin={{ left: -10, right: 20, top: 10, bottom: 0 }}>
+                <LineChart data={explorerBgyTrend} margin={{ left: 5, right: 20, top: 10, bottom: 0 }}>
                   <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
-                  <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={50} />
+                  <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 12 }} tickFormatter={fmtCompact} width={65} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 12.5, color: COLORS.creamDim }} />
-                  <Line yAxisId="left" type="monotone" dataKey="total_population" name="Population" stroke={COLORS.rust} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.rust} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.rust} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
+                  <Line yAxisId="left" type="monotone" dataKey="total_population" name="Total Population" stroke={COLORS.rust} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.rust} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.rust} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
                     <LabelList dataKey="pop_pct" position="bottom" offset={8} fontSize={11} fill={COLORS.rust} />
                   </Line>
                   <Line yAxisId="left" type="monotone" dataKey="num_households" name="Households" stroke={COLORS.teal} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.teal} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.teal} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
