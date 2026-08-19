@@ -579,16 +579,6 @@ export default function KalingaDashboard() {
 
   return (
     <>
-    <div className="mobile-alert" style={{
-      fontFamily: "'Inter', -apple-system, sans-serif", background: COLORS.bg, height: '100vh',
-      color: COLORS.cream, boxSizing: 'border-box', alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div style={{ background: COLORS.panelAlt, padding: '40px', borderRadius: 16, border: `1px solid ${COLORS.border}`, maxWidth: 450, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
-        <h2 style={{ color: COLORS.rust, marginTop: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Screen Too Small</h2>
-        <p style={{ color: COLORS.creamDim, lineHeight: 1.6, fontSize: 15 }}>We regret to inform you that this dashboard was designed to be viewed on a large screens.</p>
-        <p style={{ color: COLORS.creamDim, lineHeight: 1.6, fontSize: 15, marginBottom: 0 }}>Please open it on a Desktop or Laptop.</p>
-      </div>
-    </div>
     <div className="dashboard-wrapper" style={{
       fontFamily: "'Inter', -apple-system, sans-serif", background: COLORS.bg, height: '100vh',
       color: COLORS.cream, padding: '20px 24px', boxSizing: 'border-box',
@@ -604,10 +594,10 @@ export default function KalingaDashboard() {
         
         body { margin: 0; background: ${COLORS.bg}; color: ${COLORS.cream}; overflow: hidden; }
         
-        .mobile-alert { display: none !important; }
+        .mobile-nav-hint { display: none; }
         @media (max-width: 900px) {
-          .mobile-alert { display: flex !important; }
-          .dashboard-wrapper { display: none !important; }
+          .mobile-nav-hint { display: block; width: 100%; font-size: 11px; color: ${COLORS.creamDim}; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+          .dashboard-wrapper { overflow-y: auto !important; overflow-x: hidden; }
         }
         
         /* Animations */
@@ -865,6 +855,7 @@ export default function KalingaDashboard() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 14, flex: 'none' }}>
+        <div className="mobile-nav-hint">Navigation Menu</div>
         {TABS.map(t => {
           const Icon = t.icon;
           return (
