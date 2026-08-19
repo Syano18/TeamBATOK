@@ -33,6 +33,11 @@ function pctChange(a, b) {
   return (((b - a) / a) * 100).toFixed(1);
 }
 
+function growthRate(a, b, t) {
+  if (!a || !b || !t) return null;
+  return ((Math.pow(b / a, 1 / t) - 1) * 100).toFixed(2);
+}
+
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutGrid },
   { id: 'trends', label: 'Population Trends', icon: TrendingUp },
@@ -364,8 +369,9 @@ export default function KalingaDashboard() {
           const rec2 = DATA.municipality_trend.find(d => d.year === nextY && d.municipality === m);
           if (rec1 && rec2 && rec1.total_population && rec2.total_population) {
             midRow[m] = (rec1.total_population + rec2.total_population) / 2;
-            const pct = ((rec2.total_population - rec1.total_population) / rec1.total_population * 100).toFixed(1);
-            midRow[`${m}_pct`] = pct > 0 ? `+${pct}%` : `${pct}%`;
+            const t = nextY - y;
+            const rate = growthRate(rec1.total_population, rec2.total_population, t);
+            midRow[`${m}_pct`] = rate > 0 ? `+${rate}%` : `${rate}%`;
           }
         });
         data.push(midRow);
@@ -422,11 +428,13 @@ export default function KalingaDashboard() {
            const midPop = (d.total_population + nextD.total_population) / 2;
            const midHhPop = (d.hh_population + nextD.hh_population) / 2;
            const midNumHh = (d.num_households + nextD.num_households) / 2;
-           const pct = ((nextD.total_population - d.total_population) / d.total_population * 100).toFixed(1);
-           const pop_pct = pct > 0 ? `+${pct}%` : `${pct}%`;
+           const t = nextY - y;
            
-           const hh_pct_val = ((nextD.num_households - d.num_households) / d.num_households * 100).toFixed(1);
-           const hh_pct = hh_pct_val > 0 ? `+${hh_pct_val}%` : `${hh_pct_val}%`;
+           const pop_rate = growthRate(d.total_population, nextD.total_population, t);
+           const pop_pct = pop_rate > 0 ? `+${pop_rate}%` : `${pop_rate}%`;
+           
+           const hh_rate = growthRate(d.num_households, nextD.num_households, t);
+           const hh_pct = hh_rate > 0 ? `+${hh_rate}%` : `${hh_rate}%`;
            
            data.push({
              year: (y + nextY) / 2,
@@ -461,9 +469,7 @@ export default function KalingaDashboard() {
   ), [explorerMuni]);
 
   useEffect(() => {
-    if (explorerBarangays.length > 0) {
-      setExplorerBgy(explorerBarangays[0].name);
-    }
+    setExplorerBgy(null);
   }, [explorerBarangays]);
 
   const explorerBgyTrend = useMemo(() => {
@@ -486,11 +492,13 @@ export default function KalingaDashboard() {
            const midPop = (d.total_population + nextD.total_population) / 2;
            const midHhPop = (d.hh_population + nextD.hh_population) / 2;
            const midNumHh = (d.num_households + nextD.num_households) / 2;
-           const pct = ((nextD.total_population - d.total_population) / d.total_population * 100).toFixed(1);
-           const pop_pct = pct > 0 ? `+${pct}%` : `${pct}%`;
+           const t = nextD.year - d.year;
            
-           const hh_pct_val = ((nextD.num_households - d.num_households) / d.num_households * 100).toFixed(1);
-           const hh_pct = hh_pct_val > 0 ? `+${hh_pct_val}%` : `${hh_pct_val}%`;
+           const pop_rate = growthRate(d.total_population, nextD.total_population, t);
+           const pop_pct = pop_rate > 0 ? `+${pop_rate}%` : `${pop_rate}%`;
+           
+           const hh_rate = growthRate(d.num_households, nextD.num_households, t);
+           const hh_pct = hh_rate > 0 ? `+${hh_rate}%` : `${hh_rate}%`;
            
            data.push({
              year: (d.year + nextD.year) / 2,
@@ -891,7 +899,7 @@ export default function KalingaDashboard() {
       {tab === 'overview' && (
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Province-wide population and household growth across the four most recent census years">Province-Wide Population & Households</SectionTitle>
+            <SectionTitle note="Province-wide population and household growth across the four most recent census years. Trendline percentages show annualized growth rate.">Province-Wide Population & Households</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={overviewTrendData} margin={{ left: 5, right: 25, top: 10, bottom: 0 }}>
@@ -938,7 +946,7 @@ export default function KalingaDashboard() {
       {tab === 'trends' && (
         <div style={{ display: 'flex', gap: 16, flex: 1, flexWrap: 'wrap' }}>
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Click city/municipalities to compare their population trajectories, 2010 CPH – 2024 POPCEN">Total Population Trends by City/Municipality</SectionTitle>
+            <SectionTitle note="Click city/municipalities to compare their population trajectories, 2010 CPH – 2024 POPCEN. Trendline percentages show annualized growth rate.">Total Population Trends by City/Municipality</SectionTitle>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
               {DATA.municipalities.map(m => (
                 <Pill key={m} active={selectedMunis.includes(m)} onClick={() => {
@@ -967,7 +975,7 @@ export default function KalingaDashboard() {
           </Panel>
 
           <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle note="Total population change from 2010 CPH to 2024 POPCEN, by city/municipality">Growth Comparison</SectionTitle>
+            <SectionTitle note="Total population change from 2010 CPH to 2024 POPCEN, by city/municipality">Total Population Growth</SectionTitle>
             <div style={{ flex: 1 , minHeight: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={DATA.municipalities.map(m => {
@@ -979,7 +987,7 @@ export default function KalingaDashboard() {
                 <XAxis dataKey="municipality" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} interval={0} angle={-20} textAnchor="end" height={60} />
                 <YAxis stroke={COLORS.creamDim} tick={{ fontSize: 12 }} unit="%" width={55} />
                 <Tooltip content={<CustomTooltip suffix="%" />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Bar dataKey="growth" name="Growth 2010 CPH–2024 POPCEN" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="growth" name="Growth" radius={[4, 4, 0, 0]}>
                   {DATA.municipalities.map((m, i) => <Cell key={i} fill={COLORS.gold} />)}
                 </Bar>
               </BarChart>
@@ -1164,13 +1172,14 @@ export default function KalingaDashboard() {
             </div>
           </Panel>
 
-          {explorerBgy && explorerBgyTrend.length > 0 && (
-            <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
-              <SectionTitle note={`${explorerBgy}, ${explorerMuni} — households and population, 2010 CPH – 2024 POPCEN`}>
-                Barangay Trend
-              </SectionTitle>
-              <div style={{ flex: 1, minHeight: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+          <Panel style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
+            {explorerBgy && explorerBgyTrend.length > 0 ? (
+              <>
+                <SectionTitle note={`${explorerBgy}, ${explorerMuni} — households and total population, 2010 CPH – 2024 POPCEN. Trendline percentages show annualized growth rate.`}>
+                  Barangay Total Population & Households Trend
+                </SectionTitle>
+                <div style={{ flex: 1, minHeight: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={explorerBgyTrend} margin={{ left: 5, right: 20, top: 10, bottom: 0 }}>
                   <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 12.5 }} ticks={[2010, 2015, 2020, 2024]} />
@@ -1183,11 +1192,20 @@ export default function KalingaDashboard() {
                   <Line yAxisId="left" type="monotone" dataKey="num_households" name="Households" stroke={COLORS.teal} strokeWidth={2.5} connectNulls dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.teal} /> : <circle key={`dot-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" />} activeDot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? <circle key={`active-${p.index}`} cx={p.cx} cy={p.cy} r={6} fill={COLORS.teal} stroke="#fff" strokeWidth={2} /> : <circle key={`active-hidden-${p.index || p.cx}`} cx={p.cx} cy={p.cy} r={0} fill="none" stroke="none" />}>
                     <LabelList dataKey="hh_pct" position="bottom" offset={8} fontSize={11} fill={COLORS.teal} />
                   </Line>
-                </LineChart>
-              </ResponsiveContainer>
+                  </LineChart>
+                </ResponsiveContainer>
+                </div>
+              </>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.creamDim, minHeight: 300 }}>
+                <TrendingUp size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+                <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.cream, marginBottom: 8 }}>No Barangay Selected</div>
+                <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 280 }}>
+                  Click a bar on the population chart on the left to display its growth trend.
+                </div>
               </div>
-            </Panel>
-          )}
+            )}
+          </Panel>
 
         </div>
       )}
