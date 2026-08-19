@@ -580,9 +580,9 @@ export default function KalingaDashboard() {
   return (
     <>
     <div className="dashboard-wrapper" style={{
-      fontFamily: "'Inter', -apple-system, sans-serif", background: COLORS.bg, height: '100dvh',
+      fontFamily: "'Inter', -apple-system, sans-serif", background: COLORS.bg, minHeight: '100dvh',
       color: COLORS.cream, padding: '20px 24px', boxSizing: 'border-box',
-      display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden'
+      display: 'flex', flexDirection: 'column', overflowX: 'hidden'
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -592,7 +592,7 @@ export default function KalingaDashboard() {
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
         
-        body { margin: 0; background: ${COLORS.bg}; color: ${COLORS.cream}; overflow: hidden; }
+        body { margin: 0; background: ${COLORS.bg}; color: ${COLORS.cream}; }
         
         .mobile-nav-hint { display: none; }
         .mobile-only-text { display: none; }
@@ -601,10 +601,12 @@ export default function KalingaDashboard() {
           .mobile-only-text { display: inline; }
           .desktop-only-text { display: none; }
           .mobile-nav-hint { display: block; width: 100%; font-size: 11px; color: ${COLORS.creamDim}; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
-          .dashboard-wrapper { overflow-y: auto !important; overflow-x: hidden; padding: 14px 16px !important; }
+          .dashboard-wrapper { overflow-x: hidden; padding: 14px 16px !important; }
           .header-logos { order: -1; justify-content: center !important; width: 100%; }
           .tabs-container { justify-content: center; }
-          .muni-logos { justify-content: center; margin-left: 0 !important; width: 100%; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 4px; }
+          .muni-logos { display: none !important; }
+          .muni-logos-mobile { display: flex !important; justify-content: center; flex-wrap: wrap; gap: 8px; width: 100%; order: 0; }
+          .header-text { order: 1; }
           .controls-container { flex-direction: column !important; align-items: flex-start !important; gap: 14px !important; }
           .controls-divider { display: none !important; }
           .panel-hover { padding: 14px 14px !important; }
@@ -857,6 +859,17 @@ export default function KalingaDashboard() {
             <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
             <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 85, width: 'auto', objectFit: 'contain' }} />
             <img src="/Kalinga.png" alt="Province of Kalinga Logo" title="Province of Kalinga" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
+          </div>
+          <div className="muni-logos-mobile" style={{ display: 'none' }}>
+            {['Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'].map(name => (
+              <img 
+                key={`mob-${name}`}
+                src={`/${name}.png`} 
+                alt={`${name} Logo`} 
+                style={{ height: 32, width: 'auto', objectFit: 'contain' }} 
+                title={name === 'Tabuk' ? 'City of Tabuk' : `Municipality of ${name}`}
+              />
+            ))}
           </div>
         </div>
       </div>
