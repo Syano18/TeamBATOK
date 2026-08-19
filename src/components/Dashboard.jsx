@@ -580,7 +580,7 @@ export default function KalingaDashboard() {
   return (
     <>
     <div className="dashboard-wrapper" style={{
-      fontFamily: "'Inter', -apple-system, sans-serif", background: COLORS.bg, height: '100vh',
+      fontFamily: "'Inter', -apple-system, sans-serif", background: COLORS.bg, height: '100dvh',
       color: COLORS.cream, padding: '20px 24px', boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden'
     }}>
@@ -601,10 +601,19 @@ export default function KalingaDashboard() {
           .mobile-only-text { display: inline; }
           .desktop-only-text { display: none; }
           .mobile-nav-hint { display: block; width: 100%; font-size: 11px; color: ${COLORS.creamDim}; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
-          .dashboard-wrapper { overflow-y: auto !important; overflow-x: hidden; }
+          .dashboard-wrapper { overflow-y: auto !important; overflow-x: hidden; padding: 14px 16px !important; }
           .header-logos { order: -1; justify-content: center !important; width: 100%; }
           .tabs-container { justify-content: center; }
           .muni-logos { justify-content: center; margin-left: 0 !important; width: 100%; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 4px; }
+          .controls-container { flex-direction: column !important; align-items: flex-start !important; gap: 14px !important; }
+          .controls-divider { display: none !important; }
+          .panel-hover { padding: 14px 14px !important; }
+          .stat-card { 
+            padding: 14px 16px !important; 
+            flex: 1 1 calc(50% - 7px) !important; 
+            max-width: calc(50% - 7px) !important; 
+            min-width: 130px !important;
+          }
           .info-popup {
             position: fixed !important;
             top: 50% !important;
@@ -1008,13 +1017,13 @@ export default function KalingaDashboard() {
 
       {tab === 'agegender' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', padding: '0 4px' }}>
+          <div className="controls-container" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', padding: '0 4px' }}>
             <div style={{ display: 'flex', gap: 8 }}>
               {[2010, 2015, 2020].map(y => (
                 <Pill key={y} active={pyramidYear === y} onClick={() => setPyramidYear(y)}>{y}</Pill>
               ))}
             </div>
-            <div style={{ width: 1, height: 22, background: COLORS.border }} />
+            <div className="controls-divider" style={{ width: 1, height: 22, background: COLORS.border }} />
             <ModernSelect 
               value={pyramidLevel} 
               onChange={setPyramidLevel} 
@@ -1226,7 +1235,7 @@ export default function KalingaDashboard() {
               <SectionTitle note="Comprehensive census data across multiple geographic levels and years">
                 Statistical Data Tables
               </SectionTitle>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div className="controls-container" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <ModernSelect 
                   value={tableLevel}
                   onChange={setTableLevel}
