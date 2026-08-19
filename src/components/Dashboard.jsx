@@ -595,9 +595,27 @@ export default function KalingaDashboard() {
         body { margin: 0; background: ${COLORS.bg}; color: ${COLORS.cream}; overflow: hidden; }
         
         .mobile-nav-hint { display: none; }
+        .mobile-only-text { display: none; }
+        .desktop-only-text { display: inline; }
         @media (max-width: 900px) {
+          .mobile-only-text { display: inline; }
+          .desktop-only-text { display: none; }
           .mobile-nav-hint { display: block; width: 100%; font-size: 11px; color: ${COLORS.creamDim}; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
           .dashboard-wrapper { overflow-y: auto !important; overflow-x: hidden; }
+          .header-logos { order: -1; justify-content: center !important; width: 100%; }
+          .tabs-container { justify-content: center; }
+          .muni-logos { justify-content: center; margin-left: 0 !important; width: 100%; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 4px; }
+          .info-popup {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            margin: 0 !important;
+            width: 90vw !important;
+            max-width: 380px !important;
+            z-index: 1000 !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8) !important;
+          }
         }
         
         /* Animations */
@@ -761,7 +779,7 @@ export default function KalingaDashboard() {
       <div style={{ marginBottom: 20, flex: 'none', position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24 }}>
           
-          <div style={{ flex: '1 1 auto', minWidth: 320, position: 'relative' }}>
+          <div className="header-text" style={{ flex: '1 1 auto', minWidth: 320, position: 'relative' }}>
             <div style={{ color: '#f43f5e', fontSize: 15, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>
               Province of Kalinga · Cordillera Administrative Region
             </div>
@@ -782,7 +800,7 @@ export default function KalingaDashboard() {
                 </button>
 
                 {showInfo && (
-                  <div className="animate-enter" style={{
+                  <div className="animate-enter info-popup" style={{
                     position: 'absolute',
                     top: -10,
                     left: '100%',
@@ -826,7 +844,7 @@ export default function KalingaDashboard() {
               1 City and 7 Municipalities · 2010 CPH – 2024 POPCEN
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', flex: '2 1 auto' }}>
+          <div className="header-logos" style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', flex: '2 1 auto' }}>
             <img src="/PSA.png" alt="Philippine Statistics Authority Logo" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
             <img src="/Bagong.png" alt="Bagong Pilipinas Logo" style={{ height: 85, width: 'auto', objectFit: 'contain' }} />
             <img src="/Kalinga.png" alt="Province of Kalinga Logo" title="Province of Kalinga" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
@@ -854,22 +872,22 @@ export default function KalingaDashboard() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 14, flex: 'none' }}>
+      <div className="tabs-container" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 14, flex: 'none' }}>
         <div className="mobile-nav-hint">Navigation Menu</div>
         {TABS.map(t => {
           const Icon = t.icon;
           return (
             <button key={t.id} className={`tab-button ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)} style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '9px 16px', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
-              border: 'none', background: tab === t.id ? COLORS.rust : 'transparent',
+              padding: '8px 15px', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+              border: `1px solid ${tab === t.id ? COLORS.rust : COLORS.border}`, background: tab === t.id ? COLORS.rust : 'transparent',
               color: tab === t.id ? '#fff' : COLORS.creamDim }}>
               {Icon && <Icon size={16} />}
               {t.label}
             </button>
           );
         })}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginLeft: 'auto' }}>
+        <div className="muni-logos" style={{ display: 'flex', gap: 10, alignItems: 'center', marginLeft: 'auto' }}>
           {['Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'].map(name => (
             <img 
               key={name} 
@@ -1159,7 +1177,7 @@ export default function KalingaDashboard() {
               </div>
             </div>
             <div style={{ color: COLORS.creamDim, fontSize: 12, marginTop: 10, flex: 'none' }}>
-              Click a bar to view a different barangay's trend.
+              <span className="desktop-only-text">Click</span><span className="mobile-only-text">Double tap</span> a bar to view a different barangay's trend.
             </div>
           </Panel>
 
@@ -1192,7 +1210,7 @@ export default function KalingaDashboard() {
                 <TrendingUp size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
                 <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.cream, marginBottom: 8 }}>No Barangay Selected</div>
                 <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 280 }}>
-                  Click a bar on the population chart on the left to display its growth trend.
+                  <span className="desktop-only-text">Click</span><span className="mobile-only-text">Double tap</span> a bar on the population chart to display its growth trend.
                 </div>
               </div>
             )}
