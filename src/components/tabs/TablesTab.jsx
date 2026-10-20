@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, Download, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Map } from 'lucide-react';
+import { Search, X, Download, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Map, ChevronsRight, MoveHorizontal } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { COLORS, fmt, YEARS, CENSUS_SOURCES } from '../../utils/formatters';
 import { DATA } from '../../data/kalingaData';
@@ -230,20 +230,25 @@ export default function TablesTab({
             overflowX: 'auto',
             WebkitOverflowScrolling: 'touch'
           }}>
-            <span style={{
-              fontSize: 11,
-              color: COLORS.creamDim,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5
-            }}>
-              <Map size={13} style={{ color: COLORS.cyan }} />
-              Select LGU:
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <span style={{
+                fontSize: 11,
+                color: COLORS.creamDim,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}>
+                <Map size={13} style={{ color: COLORS.cyan }} />
+                Select LGU:
+              </span>
+              <span className="swipe-hint-badge-inline">
+                <MoveHorizontal size={11} className="swipe-hint-icon" />
+                <span>Swipe</span>
+              </span>
+            </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               {DATA.municipalities.map(m => {
                 const isTabuk = m === 'City of Tabuk';
@@ -296,6 +301,15 @@ export default function TablesTab({
             </div>
           </div>
         )}
+
+        {/* Table Horizontal Swipe Helper (Mobile & Small Screens) */}
+        <div className="table-swipe-helper">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <MoveHorizontal size={13} className="swipe-hint-icon" />
+            <span>Table is scrollable — swipe horizontally to view all columns</span>
+          </div>
+          <ChevronsRight size={13} className="swipe-hint-icon" />
+        </div>
 
         {/* Data Table */}
         <div style={{

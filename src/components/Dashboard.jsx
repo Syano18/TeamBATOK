@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Users, Home, LayoutGrid, PieChart as PieChartIcon,
-  TrendingUp, Map, Database, MessageSquare, Sparkles, ExternalLink, Award
+  TrendingUp, Map, Database, MessageSquare, Sparkles, ExternalLink, Award, Compass, ChevronsRight,
+  ChevronLeft, ChevronRight, Hand, MoveHorizontal
 } from 'lucide-react';
 import { DATA } from '../data/kalingaData';
 import { COLORS, fmt, pctChange, growthRate, CENSUS_SOURCES, APP_VERSION } from '../utils/formatters';
@@ -65,6 +66,48 @@ export default function KalingaDashboard() {
   const [tableYear, setTableYear] = useState(2024);
   const [tableMuni, setTableMuni] = useState('City of Tabuk');
 
+  // Tab horizontal scroll detection & controls
+  const tabsContainerRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkTabsScroll = () => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 6);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 6);
+  };
+
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    checkTabsScroll();
+    el.addEventListener('scroll', checkTabsScroll, { passive: true });
+    window.addEventListener('resize', checkTabsScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', checkTabsScroll);
+      window.removeEventListener('resize', checkTabsScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (el) {
+      const activeEl = el.querySelector('.tab-nav-btn.active');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+    checkTabsScroll();
+  }, [tab]);
+
+  const scrollTabs = (dir) => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    const distance = dir === 'left' ? -220 : 220;
+    el.scrollBy({ left: distance, behavior: 'smooth' });
+  };
+
   // Executive Metric Computations
   const latestProv = DATA.province_trend[DATA.province_trend.length - 1];
   const firstProv = DATA.province_trend[0];
@@ -87,15 +130,10 @@ export default function KalingaDashboard() {
     <>
       <div className="dashboard-wrapper">
         {/* Top Header */}
-        <header style={{ marginBottom: 20, position: 'relative' }}>
-          <div className="header-main-row" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 16
-          }}>
-            <div style={{ flex: '1 1 320px' }}>
+        {/* Top Header */}
+        <header style={{ marginBottom: 16, position: 'relative' }}>
+          <div className="header-main-row">
+            <div className="header-title-container">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
                 <div style={{
                   display: 'inline-flex',
@@ -106,12 +144,30 @@ export default function KalingaDashboard() {
                   background: 'rgba(244, 63, 94, 0.12)',
                   border: '1px solid rgba(244, 63, 94, 0.3)',
                   color: '#fb7185',
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 700,
                   letterSpacing: 0.8,
                   textTransform: 'uppercase'
                 }}>
                   Province of Kalinga
+                </div>
+
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '3px 9px',
+                  borderRadius: 20,
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15))',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  color: COLORS.cyan,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 0.8,
+                  textTransform: 'uppercase'
+                }}>
+                  <Award size={12} style={{ color: COLORS.cyan }} />
+                  TeamBATOK
                 </div>
 
                 <span style={{
@@ -132,7 +188,6 @@ export default function KalingaDashboard() {
 
               <h1 className="header-title-text" style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 30,
                 fontWeight: 700,
                 margin: 0,
                 color: COLORS.cream,
@@ -142,10 +197,11 @@ export default function KalingaDashboard() {
                 Population & Household Census
               </h1>
             </div>
-            <div className="header-logos" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <img src="/PSA.png" alt="Philippine Statistics Authority Logo" className="header-logo-item" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
-              <img src="/Bagong.png" alt="Bagong Pilipinas Logo" className="header-logo-item" style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
-              <img src="/Kalinga.png" alt="Province of Kalinga Logo" className="header-logo-item" style={{ height: 60, width: 'auto', objectFit: 'contain' }} title="Province of Kalinga" />
+
+            <div className="header-logos">
+              <img src="/PSA.png" alt="Philippine Statistics Authority Logo" className="header-logo-item" />
+              <img src="/Bagong.png" alt="Bagong Pilipinas Logo" className="header-logo-item" />
+              <img src="/Kalinga.png" alt="Province of Kalinga Logo" className="header-logo-item" title="Province of Kalinga" />
             </div>
           </div>
         </header>
@@ -199,32 +255,100 @@ export default function KalingaDashboard() {
           />
         </div>
 
-        {/* Tab Navigation */}
-        <div className="tabs-scroll-container no-scrollbar" style={{
-          display: 'flex',
-          gap: 6,
-          marginBottom: 18,
-          background: 'rgba(15, 23, 42, 0.6)',
-          padding: 6,
-          borderRadius: 14,
-          border: `1px solid ${COLORS.border}`,
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch'
-        }}>
-          {TABS.map(t => {
-            const Icon = t.icon;
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                className={`tab-nav-btn ${active ? 'active' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {Icon && <Icon size={15} />}
-                <span>{t.label}</span>
-              </button>
-            );
-          })}
+        {/* Tab Navigation Menu with Swipe Indicator & Controls */}
+        <div className="tabs-nav-wrapper">
+          <div className="tabs-nav-header">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              color: COLORS.cyan,
+              fontSize: 11.5,
+              fontWeight: 700,
+              letterSpacing: 0.8,
+              textTransform: 'uppercase',
+              userSelect: 'none'
+            }}>
+              <Compass size={14} style={{ color: COLORS.cyan }} />
+              <span>Select View:</span>
+            </div>
+
+            <div className="tabs-nav-controls">
+              <div className="mobile-swipe-badge" title="Swipe horizontally on phone or tap arrows to view all 6 views">
+                <Hand size={12} className="swipe-hand-icon" />
+                <span className="swipe-badge-text">Swipe to explore (6 views)</span>
+                <ChevronsRight size={13} className="swipe-hint-icon" />
+              </div>
+
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  type="button"
+                  className="tabs-arrow-btn"
+                  onClick={() => scrollTabs('left')}
+                  disabled={!canScrollLeft}
+                  title="Scroll views left"
+                  aria-label="Scroll views left"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="tabs-arrow-btn"
+                  onClick={() => scrollTabs('right')}
+                  disabled={!canScrollRight}
+                  title="Scroll views right"
+                  aria-label="Scroll views right"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="tabs-container-relative">
+            {canScrollLeft && <div className="tabs-edge-fade left" aria-hidden="true" />}
+
+            <nav
+              ref={tabsContainerRef}
+              aria-label="Dashboard views"
+              className="tabs-scroll-container no-scrollbar"
+            >
+              {TABS.map(t => {
+                const Icon = t.icon;
+                const active = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    className={`tab-nav-btn ${active ? 'active' : ''}`}
+                    onClick={(e) => {
+                      setTab(t.id);
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    title={t.desc}
+                    type="button"
+                  >
+                    {Icon && <Icon size={15} style={{ color: active ? COLORS.cyan : undefined }} />}
+                    <span>{t.label}</span>
+                    {active && (
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          background: COLORS.cyan,
+                          boxShadow: `0 0 8px ${COLORS.cyan}`,
+                          marginLeft: 2
+                        }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {canScrollRight && <div className="tabs-edge-fade right" aria-hidden="true" />}
+          </div>
         </div>
 
         {/* Modular Tab Content Views */}

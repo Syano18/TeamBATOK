@@ -3,7 +3,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, LabelList
 } from 'recharts';
-import { Search, X, TrendingUp, Map } from 'lucide-react';
+import { Search, X, TrendingUp, Map, MoveHorizontal } from 'lucide-react';
 import { COLORS, fmtCompact, pctChange } from '../../utils/formatters';
 import { DATA } from '../../data/kalingaData';
 import { Panel, SectionTitle, Pill, WrappedYAxisTick } from '../common/CommonUI';
@@ -105,20 +105,25 @@ export default function BarangaysTab({
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch'
       }}>
-        <span style={{
-          fontSize: 11,
-          color: COLORS.creamDim,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: 0.8,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5
-        }}>
-          <Map size={13} style={{ color: COLORS.cyan }} />
-          Select LGU:
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span style={{
+            fontSize: 11,
+            color: COLORS.creamDim,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5
+          }}>
+            <Map size={13} style={{ color: COLORS.cyan }} />
+            Select LGU:
+          </span>
+          <span className="swipe-hint-badge-inline">
+            <MoveHorizontal size={11} className="swipe-hint-icon" />
+            <span>Swipe</span>
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {DATA.municipalities.map(m => {
             const isTabuk = m === 'City of Tabuk';
