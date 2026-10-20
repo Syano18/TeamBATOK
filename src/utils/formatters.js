@@ -1,3 +1,5 @@
+export const APP_VERSION = 'v1.0.0';
+
 export const YEARS = [2010, 2015, 2020, 2024];
 
 export const CENSUS_SOURCES = {

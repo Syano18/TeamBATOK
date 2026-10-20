@@ -4,7 +4,7 @@ import {
   TrendingUp, Map, Database, MessageSquare, Sparkles, ExternalLink, Award
 } from 'lucide-react';
 import { DATA } from '../data/kalingaData';
-import { COLORS, fmt, pctChange, growthRate, CENSUS_SOURCES } from '../utils/formatters';
+import { COLORS, fmt, pctChange, growthRate, CENSUS_SOURCES, APP_VERSION } from '../utils/formatters';
 import { StatCard } from './common/CommonUI';
 
 import OverviewTab from './tabs/OverviewTab';
@@ -106,13 +106,28 @@ export default function KalingaDashboard() {
                   background: 'rgba(244, 63, 94, 0.12)',
                   border: '1px solid rgba(244, 63, 94, 0.3)',
                   color: '#fb7185',
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: 700,
-                  letterSpacing: 1,
+                  letterSpacing: 0.8,
                   textTransform: 'uppercase'
                 }}>
                   Province of Kalinga
                 </div>
+
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${COLORS.border}`,
+                  color: COLORS.creamDim,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: 0.5
+                }}>
+                  {APP_VERSION}
+                </span>
               </div>
 
               <h1 className="header-title-text" style={{
@@ -346,7 +361,7 @@ export default function KalingaDashboard() {
               <span style={{ color: COLORS.creamDim }}>Contest Entry by</span>
               <strong style={{ color: COLORS.cyan, letterSpacing: 0.5 }}>TeamBATOK</strong>
             </div>
-            <span>Provincial Government of Kalinga & Philippine Statistics Authority</span>
+            <span>Provincial Government of Kalinga & Philippine Statistics Authority • {APP_VERSION}</span>
           </div>
         </footer>
 
