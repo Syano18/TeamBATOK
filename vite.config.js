@@ -21,7 +21,7 @@ const apiMiddleware = () => ({
             req.on('data', chunk => body += chunk);
             await new Promise(resolve => req.on('end', () => {
               if (body) {
-                try { req.body = JSON.parse(body); } catch(e) {}
+                try { req.body = JSON.parse(body); } catch {}
               }
               resolve();
             }));
