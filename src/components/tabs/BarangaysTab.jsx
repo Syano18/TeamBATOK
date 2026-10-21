@@ -3,7 +3,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, LabelList
 } from 'recharts';
-import { Search, X, TrendingUp, Map, MoveHorizontal } from 'lucide-react';
+import { Search, X, TrendingUp, Map, MoveHorizontal, Info } from 'lucide-react';
 import { COLORS, fmtCompact, pctChange } from '../../utils/formatters';
 import { DATA } from '../../data/kalingaData';
 import { Panel, SectionTitle, Pill, WrappedYAxisTick } from '../common/CommonUI';
@@ -31,18 +31,21 @@ export default function BarangaysTab({
     } else if (bgyFilter === 'bottom10') {
       return list.slice(-10).reverse();
     } else if (bgyFilter === 'fastest') {
-      // Sort by growth between 2015 and 2024 if trend data available
+      // 14-Year cumulative expansion (2010–2024 CPH) - excludes LGUs with incomplete 4-round baseline
       const bgyTrends = DATA.barangay_trend[explorerMuni] || {};
-      return list.map(b => {
-        const trend = bgyTrends[b.name];
-        let growth = 0;
-        if (trend && trend.length >= 2) {
+      return list
+        .filter(b => {
+          const trend = bgyTrends[b.name];
+          return trend && trend.length >= 4;
+        })
+        .map(b => {
+          const trend = bgyTrends[b.name];
           const first = trend[0];
           const last = trend[trend.length - 1];
-          growth = +pctChange(first.total_population, last.total_population) || 0;
-        }
-        return { ...b, growthRate: growth };
-      }).sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0));
+          const growth = +pctChange(first.total_population, last.total_population) || 0;
+          return { ...b, growthRate: growth };
+        })
+        .sort((a, b) => (b.growthRate || 0) - (a.growthRate || 0));
     }
 
     return list;
@@ -246,6 +249,7 @@ export default function BarangaysTab({
             </button>
             <button
               onClick={() => setBgyFilter('fastest')}
+              title="Rank barangays by 14-year cumulative growth (2010–2024 CPH, requires complete 4-round baseline)"
               style={{
                 padding: '3px 9px',
                 borderRadius: 6,
@@ -257,7 +261,7 @@ export default function BarangaysTab({
                 cursor: 'pointer'
               }}
             >
-              Highest Expansion
+              Highest Expansion (2010–2024)
             </button>
           </div>
 
@@ -293,7 +297,7 @@ export default function BarangaysTab({
         {/* Barangay Detailed Growth Trend */}
         <Panel style={{ display: 'flex', flexDirection: 'column' }}>
           {explorerBgy && explorerBgyTrend.length > 0 ? (
-            <>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ padding: '2px 7px', borderRadius: 6, background: COLORS.purpleSoft, color: COLORS.purple, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase' }}>
@@ -309,48 +313,72 @@ export default function BarangaysTab({
                 </div>
               </div>
 
-              <div className="chart-box-container" style={{ width: '100%', height: 330, minHeight: 300 }}>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={explorerBgyTrend} margin={{ left: 0, right: 15, top: 15, bottom: 5 }}>
-                    <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="year" stroke={COLORS.creamDim} tick={{ fontSize: 11.5 }} ticks={[2010, 2015, 2020, 2024]} />
-                    <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 11 }} tickFormatter={fmtCompact} width={50} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: 12, color: COLORS.creamDim, paddingTop: 6 }} />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="total_population"
-                      name="Total Population"
-                      stroke={COLORS.cyan}
-                      strokeWidth={2.8}
-                      connectNulls
-                      dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? (
-                        <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.cyan} stroke="#fff" strokeWidth={1.5} />
-                      ) : null}
-                      activeDot={{ r: 6, fill: COLORS.cyan, stroke: '#fff', strokeWidth: 2 }}
-                    >
-                      <LabelList dataKey="pop_pct" position="bottom" offset={8} fontSize={10.5} fill={COLORS.cyan} fontWeight={700} />
-                    </Line>
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="num_households"
-                      name="Households"
-                      stroke={COLORS.pink}
-                      strokeWidth={2.2}
-                      connectNulls
-                      dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? (
-                        <circle key={p.index} cx={p.cx} cy={p.cy} r={3.5} fill={COLORS.pink} />
-                      ) : null}
-                      activeDot={{ r: 5.5, fill: COLORS.pink, stroke: '#fff', strokeWidth: 2 }}
-                    >
-                      <LabelList dataKey="hh_pct" position="bottom" offset={8} fontSize={10.5} fill={COLORS.pink} fontWeight={700} />
-                    </Line>
-                  </LineChart>
-                </ResponsiveContainer>
+              <div
+                className="chart-box-container"
+                style={{
+                  width: '100%',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 12,
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '16px 12px 14px',
+                  boxShadow: 'inset 0 1px 4px rgba(0, 0, 0, 0.25)',
+                  minHeight: 350
+                }}
+              >
+                <div style={{ width: '100%', height: 360 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={explorerBgyTrend} margin={{ left: 5, right: 30, top: 20, bottom: 8 }}>
+                      <CartesianGrid stroke={COLORS.border} strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="year"
+                        stroke={COLORS.creamDim}
+                        tick={{ fontSize: 11.5 }}
+                        ticks={[2010, 2015, 2020, 2024]}
+                        padding={{ left: 15, right: 15 }}
+                      />
+                      <YAxis yAxisId="left" stroke={COLORS.creamDim} tick={{ fontSize: 11 }} tickFormatter={fmtCompact} width={45} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: COLORS.creamDim, paddingTop: 10 }} align="center" />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="total_population"
+                        name="Total Population"
+                        stroke={COLORS.cyan}
+                        strokeWidth={2.8}
+                        connectNulls
+                        dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? (
+                          <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={COLORS.cyan} stroke="#fff" strokeWidth={1.5} />
+                        ) : null}
+                        activeDot={{ r: 6, fill: COLORS.cyan, stroke: '#fff', strokeWidth: 2 }}
+                      >
+                        <LabelList dataKey="pop_pct" position="bottom" offset={8} fontSize={10.5} fill={COLORS.cyan} fontWeight={700} />
+                      </Line>
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="num_households"
+                        name="Households"
+                        stroke={COLORS.pink}
+                        strokeWidth={2.2}
+                        connectNulls
+                        dot={(p) => [2010, 2015, 2020, 2024].includes(p.payload?.year) ? (
+                          <circle key={p.index} cx={p.cx} cy={p.cy} r={3.5} fill={COLORS.pink} />
+                        ) : null}
+                        activeDot={{ r: 5.5, fill: COLORS.pink, stroke: '#fff', strokeWidth: 2 }}
+                      >
+                        <LabelList dataKey="hh_pct" position="bottom" offset={8} fontSize={10.5} fill={COLORS.pink} fontWeight={700} />
+                      </Line>
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </>
+            </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.creamDim, minHeight: 300 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
@@ -363,6 +391,25 @@ export default function BarangaysTab({
             </div>
           )}
         </Panel>
+      </div>
+
+      {/* Barangay Administrative & Census Enumeration Notes */}
+      <div style={{
+        padding: '10px 14px',
+        borderRadius: 10,
+        background: 'rgba(15, 23, 42, 0.5)',
+        border: `1px solid ${COLORS.border}`,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        fontSize: 11.5,
+        color: COLORS.creamDim,
+        lineHeight: 1.5
+      }}>
+        <Info size={14} style={{ color: COLORS.cyan, flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <strong style={{ color: COLORS.cyan }}>Data Validation &amp; Historical Context:</strong> Official PSA census series may display unique barangay trajectories reflecting administrative creations and geographical conditions. For instance, <strong style={{ color: COLORS.cream }}>Lacnog West (City of Tabuk)</strong> was formally established in recent rounds (official records begin in the 2020 CPH), while highland remote barangays such as <strong style={{ color: COLORS.cream }}>Dacalan (Tanudan)</strong> reflect seasonal agrarian mobility and remote terrain accessibility between enumeration rounds.
+        </div>
       </div>
     </div>
   );

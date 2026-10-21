@@ -11,7 +11,7 @@ import CustomTooltip from '../common/CustomTooltip';
 
 export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
   const latestProv = DATA.province_trend[DATA.province_trend.length - 1];
-  const firstProv = DATA.province_trend[0];
+  const prevProv = DATA.province_trend[DATA.province_trend.length - 2];
 
   // 1. Grouped bar chart data across census years
   const householdsChartData = useMemo(() => (
@@ -40,9 +40,59 @@ export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
   ), []);
 
   const provSize24 = ((latestProv.hh_population || latestProv.total_population) / latestProv.num_households).toFixed(2);
-  const totalNetNewHh = latestProv.num_households - firstProv.num_households;
-  const provHhGrowth = pctChange(firstProv.num_households, latestProv.num_households);
+  const totalNetNewHh = latestProv.num_households - prevProv.num_households;
+  const provHhGrowth = pctChange(prevProv.num_households, latestProv.num_households);
   const instPopTotal = latestProv.total_population - latestProv.hh_population;
+
+  // Dynamic calculations for all KPI cards
+  const tabukRec = DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === 'City of Tabuk');
+  const tabukHhShare = tabukRec && latestProv.num_households 
+    ? ((tabukRec.num_households / latestProv.num_households) * 100).toFixed(1) 
+    : '0.0';
+
+  const sortedCompactLgus = useMemo(() => {
+    return DATA.municipalities.map(m => {
+      const rec = DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === m);
+      const size = rec && rec.num_households ? +((rec.hh_population || rec.total_population) / rec.num_households).toFixed(2) : 999;
+      return {
+        muni: m,
+        shortName: m.replace('City of ', ''),
+        size
+      };
+    }).sort((a, b) => a.size - b.size);
+  }, []);
+
+  const mostCompactLgu = sortedCompactLgus[0];
+  const runnerUpCompact = sortedCompactLgus.slice(1, 3);
+
+  const fastestHhLgu = useMemo(() => {
+    const y24 = DATA.municipality_trend.filter(d => d.year === 2024);
+    const y20 = DATA.municipality_trend.filter(d => d.year === 2020);
+    return y24.map(d24 => {
+      const d20 = y20.find(m => m.municipality === d24.municipality);
+      const growth = d20 && d20.num_households 
+        ? +pctChange(d20.num_households, d24.num_households) 
+        : 0;
+      return {
+        muni: d24.municipality,
+        shortName: d24.municipality.replace('City of ', ''),
+        startHh: d20?.num_households || 0,
+        endHh: d24.num_households,
+        growth
+      };
+    }).sort((a, b) => b.growth - a.growth)[0];
+  }, []);
+
+  const hhPopShare = ((latestProv.hh_population / latestProv.total_population) * 100).toFixed(2);
+  const instPopShare = ((instPopTotal / latestProv.total_population) * 100).toFixed(2);
+  const instPopBreakdown = useMemo(() => {
+    return DATA.municipality_trend
+      .filter(d => d.year === 2024 && (d.total_population - d.hh_population) > 0)
+      .map(d => ({
+        muni: d.municipality,
+        count: d.total_population - d.hh_population
+      }));
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
@@ -77,10 +127,10 @@ export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
           <div>
             <div style={{ fontSize: 11, color: COLORS.creamDim, textTransform: 'uppercase', fontWeight: 600 }}>Urban Concentration</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
-              Tabuk ({fmt(DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === 'City of Tabuk')?.num_households)})
+              Tabuk ({fmt(tabukRec?.num_households)})
             </div>
             <div style={{ fontSize: 11, color: COLORS.cyan, fontWeight: 600 }}>
-              53.7% of all provincial homes
+              {tabukHhShare}% of all provincial households
             </div>
           </div>
         </div>
@@ -107,12 +157,12 @@ export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
             <Home size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 11, color: COLORS.creamDim, textTransform: 'uppercase', fontWeight: 600 }}>Net New Families Added</div>
+            <div style={{ fontSize: 11, color: COLORS.creamDim, textTransform: 'uppercase', fontWeight: 600 }}>Net New Households Added</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.purple, fontFamily: "'Space Grotesk', sans-serif" }}>
-              +{fmt(totalNetNewHh)} Homes
+              +{fmt(totalNetNewHh)} Households
             </div>
             <div style={{ fontSize: 11, color: COLORS.emerald, fontWeight: 600 }}>
-              +{provHhGrowth}% surge since 2010 CPH
+              +{provHhGrowth}% increase since 2020 CPH
             </div>
           </div>
         </div>
@@ -141,10 +191,10 @@ export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
           <div>
             <div style={{ fontSize: 11, color: COLORS.creamDim, textTransform: 'uppercase', fontWeight: 600 }}>Most Compact LGU</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
-              Rizal (3.88)
+              {mostCompactLgu?.shortName} ({mostCompactLgu?.size})
             </div>
             <div style={{ fontSize: 11, color: COLORS.cyan }}>
-              Tabuk: 4.13 · Pinukpuk: 4.22
+              {runnerUpCompact.map(r => `${r.shortName}: ${r.size}`).join(' · ')}
             </div>
           </div>
         </div>
@@ -171,12 +221,12 @@ export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
             <TrendingUp size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 11, color: COLORS.creamDim, textTransform: 'uppercase', fontWeight: 600 }}>Fastest Family Growth</div>
+            <div style={{ fontSize: 11, color: COLORS.creamDim, textTransform: 'uppercase', fontWeight: 600 }}>Fastest Household Growth</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
-              Tanudan (+65.8%)
+              {fastestHhLgu?.shortName} (+{fastestHhLgu?.growth}%)
             </div>
             <div style={{ fontSize: 11, color: COLORS.emerald }}>
-              1,414 → 2,344 registered families
+              {fmt(fastestHhLgu?.startHh)} → {fmt(fastestHhLgu?.endHh)} households
             </div>
           </div>
         </div>
@@ -277,13 +327,17 @@ export default function HouseholdsTab({ householdMetric, setHouseholdMetric }) {
           lineHeight: 1.5
         }}>
           <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ color: COLORS.cyan, fontWeight: 700, marginBottom: 3 }}>Private Household Population (99.92%)</div>
-            <strong>{fmt(latestProv.hh_population)} residents</strong> live in standard family housing units across <strong>{fmt(latestProv.num_households)} households</strong>, reflecting an average density of <strong>{provSize24} persons per home</strong>.
+            <div style={{ color: COLORS.cyan, fontWeight: 700, marginBottom: 3 }}>Household Population ({hhPopShare}%)</div>
+            <strong>{fmt(latestProv.hh_population)} residents</strong> live in private households across <strong>{fmt(latestProv.num_households)} households</strong>, reflecting an average density of <strong>{provSize24} persons per household</strong>.
           </div>
 
           <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ color: COLORS.purple, fontWeight: 700, marginBottom: 3 }}>Institutional Population (0.08%)</div>
-            Only <strong>{fmt(instPopTotal)} individuals</strong> reside in collective institutional quarters across the province: <strong>170 persons</strong> in the City of Tabuk and <strong>19 persons</strong> in Pinukpuk (such as dormitories, medical facilities, and correctional centers).
+            <div style={{ color: COLORS.purple, fontWeight: 700, marginBottom: 3 }}>Institutional Population ({instPopShare}%)</div>
+            Only <strong>{fmt(instPopTotal)} individuals</strong> reside in collective institutional quarters across the province: {instPopBreakdown.map((item, idx) => (
+              <span key={item.muni}>
+                <strong>{fmt(item.count)} persons</strong> in {item.muni}{idx < instPopBreakdown.length - 1 ? ' and ' : ''}
+              </span>
+            ))} (such as dormitories, medical facilities, and correctional centers).
           </div>
         </div>
       </Panel>

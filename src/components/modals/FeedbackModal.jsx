@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, AlertCircle } from 'lucide-react';
 import { COLORS } from '../../utils/formatters';
 
 export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
   const [reviewForm, setReviewForm] = useState({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setSubmitError(null);
+    onClose();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,19 +22,22 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      await fetch('/api/reviews', {
+      const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reviewForm)
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Server error (${res.status}). Please try again later.`);
+      }
       onSuccess();
       setReviewForm({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
-      onClose();
-    } catch {
-      onSuccess();
-      setReviewForm({ name: '', email: '', contact: '', body: '', q1: 0, q2: 0 });
-      onClose();
+      handleClose();
+    } catch (err) {
+      setSubmitError(err.message || 'Submission failed. Please check your internet connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -60,7 +69,7 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
         overflowY: 'auto'
       }}>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           title="Close"
           style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: COLORS.creamDim, cursor: 'pointer', padding: 4 }}
         >
@@ -78,6 +87,24 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
             <div style={{ color: COLORS.creamDim, fontSize: 11.5 }}>Help us enhance the Kalinga Census Dashboard</div>
           </div>
         </div>
+
+        {submitError && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 8,
+            padding: '10px 12px',
+            marginTop: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 12,
+            color: '#fca5a5'
+          }}>
+            <AlertCircle size={16} style={{ flexShrink: 0, color: '#f87171' }} />
+            <span>{submitError}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
           <div>
@@ -224,7 +251,7 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 padding: '8px 16px',
                 borderRadius: 8,

@@ -12,6 +12,26 @@ import KalingaMap from '../map/KalingaMap';
 
 export default function OverviewTab({ onNavigateToLgu }) {
   const latestProv = DATA.province_trend[DATA.province_trend.length - 1];
+  const prevProv = DATA.province_trend[DATA.province_trend.length - 2];
+  const provAvgHhSize = ((latestProv.hh_population || latestProv.total_population) / latestProv.num_households).toFixed(2);
+  const prevAvgHhSize = ((prevProv.hh_population || prevProv.total_population) / prevProv.num_households).toFixed(2);
+  const provPopGrowth = pctChange(prevProv.total_population, latestProv.total_population);
+  const provHhCountGrowth = pctChange(prevProv.num_households, latestProv.num_households);
+  const netNewResidents = latestProv.total_population - prevProv.total_population;
+
+  // LGU-specific figures for narrative
+  const tabuk20 = DATA.municipality_trend.find(d => d.year === 2020 && d.municipality === 'City of Tabuk');
+  const tabuk24 = DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === 'City of Tabuk');
+  const tabukGrowth2024 = tabuk20 && tabuk24 ? pctChange(tabuk20.total_population, tabuk24.total_population) : '1.4';
+  const tabukShare = tabuk24 && latestProv.total_population ? ((tabuk24.total_population / latestProv.total_population) * 100).toFixed(1) : '52.2';
+
+  const tanudan20 = DATA.municipality_trend.find(d => d.year === 2020 && d.municipality === 'Tanudan');
+  const tanudan24 = DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === 'Tanudan');
+  const tanudanGrowth2024 = tanudan20 && tanudan24 ? pctChange(tanudan20.total_population, tanudan24.total_population) : '27.0';
+
+  const lubuagan10 = DATA.municipality_trend.find(d => d.year === 2010 && d.municipality === 'Lubuagan');
+  const lubuagan24 = DATA.municipality_trend.find(d => d.year === 2024 && d.municipality === 'Lubuagan');
+  const lubuaganDrop1024 = lubuagan10 && lubuagan24 ? pctChange(lubuagan10.total_population, lubuagan24.total_population) : '-7.6';
 
   // 2024 Municipality populations sorted with percentage share
   const muniPop2024 = useMemo(() => (
@@ -114,40 +134,81 @@ export default function OverviewTab({ onNavigateToLgu }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-      {/* 1. Automated Key Insights Executive Banner */}
-      <Panel glow style={{ padding: '16px 20px', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%), rgba(17, 24, 39, 0.75)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Sparkles size={16} style={{ color: COLORS.cyan }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.cream, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-            Executive Demographic Insights & Highlights
-          </span>
-          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: COLORS.cyanSoft, color: COLORS.cyan, fontWeight: 600 }}>
-            Automated Analysis
+      {/* 1. Key Census Takeaways: Executive Narrative Headline */}
+      <Panel glow style={{
+        padding: '18px 22px',
+        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(139, 92, 246, 0.1) 50%, rgba(17, 24, 39, 0.9) 100%)',
+        border: `1px solid ${COLORS.borderHover}`
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: COLORS.cyanSoft,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: COLORS.cyan
+            }}>
+              <Sparkles size={16} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.cream, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              Key Census Takeaways • Executive Narrative
+            </span>
+          </div>
+          <span style={{
+            fontSize: 11,
+            padding: '3px 10px',
+            borderRadius: 20,
+            background: 'rgba(16, 185, 129, 0.15)',
+            color: COLORS.emerald,
+            fontWeight: 700,
+            border: '1px solid rgba(16, 185, 129, 0.3)'
+          }}>
+            Official 2024 POPCEN Findings
           </span>
         </div>
+
+        <p style={{
+          fontSize: 13.5,
+          color: COLORS.cream,
+          lineHeight: 1.65,
+          margin: '0 0 14px 0',
+          fontWeight: 400
+        }}>
+          Between the 2020 CPH and 2024 POPCEN, Kalinga’s population grew by <strong style={{ color: COLORS.cyan }}>{fmt(netNewResidents)} (+{provPopGrowth}%)</strong> to <strong style={{ color: COLORS.cyan }}>{fmt(latestProv.total_population)}</strong>, while households grew much faster (<strong style={{ color: COLORS.purple }}>+{provHhCountGrowth}%</strong>), reducing average household size from <strong style={{ color: COLORS.purple }}>{prevAvgHhSize} to {provAvgHhSize} persons</strong>. <strong>City of Tabuk</strong> remains the population center with <strong style={{ color: COLORS.cyan }}>{tabukShare}%</strong> of residents, but grew only <strong style={{ color: COLORS.cream }}>{tabukGrowth2024}%</strong>. The fastest growth came from smaller upland LGUs, led by <strong style={{ color: COLORS.emerald }}>Tanudan (+{tanudanGrowth2024}%)</strong>, while <strong style={{ color: COLORS.pink }}>Lubuagan</strong> is the only LGU with fewer residents than in 2010 (<strong style={{ color: COLORS.pink }}>{lubuaganDrop1024}%</strong>).
+        </p>
+
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 12,
-          fontSize: 12.5,
-          color: COLORS.creamDim,
-          lineHeight: 1.5
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 10
         }}>
-          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ color: COLORS.cyan, fontWeight: 700, marginBottom: 2 }}>Urban Concentration</div>
-            <strong>{insights.topMuni?.municipality}</strong> holds <strong>{insights.topMuni?.share}%</strong> of the entire provincial population ({fmt(insights.topMuni?.total_population)} residents).
+          <div style={{ background: 'rgba(255,255,255,0.025)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
+            <div style={{ color: COLORS.cyan, fontWeight: 700, fontSize: 11.5, marginBottom: 2 }}>Urban Concentration</div>
+            <div style={{ fontSize: 12, color: COLORS.creamDim, lineHeight: 1.45 }}>
+              <strong>{insights.topMuni?.municipality}</strong> holds <strong>{insights.topMuni?.share}%</strong> of all provincial residents ({fmt(insights.topMuni?.total_population)} pop.).
+            </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ color: COLORS.emerald, fontWeight: 700, marginBottom: 2 }}>Recent Growth Leader</div>
-            <strong>{insights.fastestRecent.muni}</strong> recorded the fastest annualized expansion between 2020–2024 at <strong>+{insights.fastestRecent.rate}% / year</strong>.
+          <div style={{ background: 'rgba(255,255,255,0.025)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
+            <div style={{ color: COLORS.emerald, fontWeight: 700, fontSize: 11.5, marginBottom: 2 }}>Recent Growth Leader</div>
+            <div style={{ fontSize: 12, color: COLORS.creamDim, lineHeight: 1.45 }}>
+              <strong>{insights.fastestRecent.muni}</strong> recorded the fastest 2020–2024 annualized rate at <strong>+{insights.fastestRecent.rate}% / year</strong>.
+            </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ color: COLORS.purple, fontWeight: 700, marginBottom: 2 }}>Household Nuclearization</div>
-            Provincial average household size dropped to <strong>4.25 persons</strong>; <strong>{insights.smallestHh.muni}</strong> has the most compact households at <strong>{insights.smallestHh.size}</strong>.
+          <div style={{ background: 'rgba(255,255,255,0.025)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
+            <div style={{ color: COLORS.purple, fontWeight: 700, fontSize: 11.5, marginBottom: 2 }}>Household Nuclearization</div>
+            <div style={{ fontSize: 12, color: COLORS.creamDim, lineHeight: 1.45 }}>
+              Provincial density dropped to <strong>{provAvgHhSize} persons/hh</strong>; <strong>{insights.smallestHh.muni}</strong> is most compact at <strong>{insights.smallestHh.size}</strong>.
+            </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ color: COLORS.pink, fontWeight: 700, marginBottom: 2 }}>14-Year Cumulative Expansion</div>
-            <strong>{insights.topLongTerm.muni}</strong> experienced a remarkable <strong>+{insights.topLongTerm.pct}%</strong> population surge since the 2010 CPH census round.
+          <div style={{ background: 'rgba(255,255,255,0.025)', padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
+            <div style={{ color: COLORS.pink, fontWeight: 700, fontSize: 11.5, marginBottom: 2 }}>14-Year Cumulative Expansion</div>
+            <div style={{ fontSize: 12, color: COLORS.creamDim, lineHeight: 1.45 }}>
+              <strong>{insights.topLongTerm.muni}</strong> recorded the largest long-term expansion at <strong>+{insights.topLongTerm.pct}%</strong> over the 2010–2024 census rounds.
+            </div>
           </div>
         </div>
       </Panel>

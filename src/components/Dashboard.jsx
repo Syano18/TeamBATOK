@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Users, Home, LayoutGrid, PieChart as PieChartIcon,
-  TrendingUp, Map, Database, MessageSquare, Sparkles, ExternalLink, Award, Compass, ChevronsRight,
-  ChevronLeft, ChevronRight, Hand, MoveHorizontal
+  TrendingUp, Map, Database, MessageSquare, Sparkles, Compass, ChevronsRight,
+  ChevronLeft, ChevronRight, Hand, ExternalLink, Award
 } from 'lucide-react';
 import { DATA } from '../data/kalingaData';
 import { COLORS, fmt, pctChange, growthRate, CENSUS_SOURCES, APP_VERSION } from '../utils/formatters';
@@ -22,7 +22,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutGrid, desc: 'Key province metrics & municipal rankings' },
   { id: 'trends', label: 'Population Trends', icon: TrendingUp, desc: 'Census trajectories 2010–2024' },
   { id: 'agegender', label: 'Age & Gender', icon: Users, desc: 'Demographic pyramid & sex ratios' },
-  { id: 'households', label: 'Households', icon: Home, desc: 'Household counts & family sizes' },
+  { id: 'households', label: 'Households', icon: Home, desc: 'Household counts & household sizes' },
   { id: 'explorer', label: 'Barangays', icon: Map, desc: 'Barangay search & deep-dive trends' },
   { id: 'tables', label: 'Data Tables', icon: Database, desc: 'Filter, sort & Excel export' },
 ];
@@ -108,13 +108,13 @@ export default function KalingaDashboard() {
     el.scrollBy({ left: distance, behavior: 'smooth' });
   };
 
-  // Executive Metric Computations
-  const latestProv = DATA.province_trend[DATA.province_trend.length - 1];
-  const firstProv = DATA.province_trend[0];
-  const prevProv = DATA.province_trend[DATA.province_trend.length - 2];
+  // Executive Metric Computations (comparing recent 2020 CPH to 2024 POPCEN)
+  const latestProv = DATA.province_trend[DATA.province_trend.length - 1]; // 2024
+  const prevProv = DATA.province_trend[DATA.province_trend.length - 2];   // 2020
 
   const avgHHSize = (latestProv.hh_population / latestProv.num_households).toFixed(2);
-  const growthTotal = pctChange(firstProv.total_population, latestProv.total_population);
+  const prevAvgHHSize = (prevProv.hh_population / prevProv.num_households).toFixed(2);
+  const hhSizeDiff = (avgHHSize - prevAvgHHSize).toFixed(2);
   const growthRecent = pctChange(prevProv.total_population, latestProv.total_population);
   const annualizedRecent = growthRate(prevProv.total_population, latestProv.total_population, 4);
 
@@ -144,7 +144,7 @@ export default function KalingaDashboard() {
                   background: 'rgba(244, 63, 94, 0.12)',
                   border: '1px solid rgba(244, 63, 94, 0.3)',
                   color: '#fb7185',
-                  fontSize: 12,
+                  fontSize: 15,
                   fontWeight: 700,
                   letterSpacing: 0.8,
                   textTransform: 'uppercase'
@@ -152,38 +152,6 @@ export default function KalingaDashboard() {
                   Province of Kalinga
                 </div>
 
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '3px 9px',
-                  borderRadius: 20,
-                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15))',
-                  border: '1px solid rgba(6, 182, 212, 0.4)',
-                  color: COLORS.cyan,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase'
-                }}>
-                  <Award size={12} style={{ color: COLORS.cyan }} />
-                  TeamBATOK
-                </div>
-
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 8px',
-                  borderRadius: 12,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: `1px solid ${COLORS.border}`,
-                  color: COLORS.creamDim,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: 0.5
-                }}>
-                  {APP_VERSION}
-                </span>
               </div>
 
               <h1 className="header-title-text" style={{
@@ -211,8 +179,8 @@ export default function KalingaDashboard() {
           <StatCard
             label="Total Population"
             value={fmt(latestProv.total_population)}
-            growth={`+${growthTotal}%`}
-            sub="since 2010 CPH"
+            growth={`+${growthRecent}%`}
+            sub="since 2020 CPH"
             accent={COLORS.cyan}
             icon={Users}
             delay={0.05}
@@ -220,8 +188,8 @@ export default function KalingaDashboard() {
           <StatCard
             label="Household Population"
             value={fmt(latestProv.hh_population)}
-            growth={`+${pctChange(firstProv.hh_population, latestProv.hh_population)}%`}
-            sub="in households"
+            growth={`+${pctChange(prevProv.hh_population, latestProv.hh_population)}%`}
+            sub="since 2020 CPH"
             accent={COLORS.sky}
             icon={Home}
             delay={0.1}
@@ -229,8 +197,8 @@ export default function KalingaDashboard() {
           <StatCard
             label="Total Households"
             value={fmt(latestProv.num_households)}
-            growth={`+${pctChange(firstProv.num_households, latestProv.num_households)}%`}
-            sub="families"
+            growth={`+${pctChange(prevProv.num_households, latestProv.num_households)}%`}
+            sub="since 2020 CPH"
             accent={COLORS.purple}
             icon={LayoutGrid}
             delay={0.15}
@@ -238,8 +206,8 @@ export default function KalingaDashboard() {
           <StatCard
             label="Avg. Household Size"
             value={avgHHSize}
-            sub="persons / HH"
-            growth="↓ -0.96"
+            sub="since 2020 CPH"
+            growth={`↓ ${hhSizeDiff}`}
             accent={COLORS.pink}
             icon={PieChartIcon}
             delay={0.2}
@@ -460,32 +428,14 @@ export default function KalingaDashboard() {
             ))}
           </div>
 
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 8,
-            paddingTop: 8,
-            borderTop: `1px solid ${COLORS.border}`,
-            fontSize: 11,
-            color: COLORS.creamSub
-          }}>
-            <span>Mandated by Republic Act No. 10625 (Philippine Statistical Act of 2013)</span>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'rgba(6, 182, 212, 0.08)',
-              border: '1px solid rgba(6, 182, 212, 0.25)',
-              padding: '3px 10px',
-              borderRadius: 6
-            }}>
+          <div className="footer-bottom-bar">
+            <span className="footer-mandate-text">Mandated by Republic Act No. 10625 (Philippine Statistical Act of 2013)</span>
+            <div className="footer-teambatok-badge">
               <Award size={12} style={{ color: COLORS.cyan }} />
-              <span style={{ color: COLORS.creamDim }}>Contest Entry by</span>
+              <span style={{ color: COLORS.creamDim }}>NSM Entry by</span>
               <strong style={{ color: COLORS.cyan, letterSpacing: 0.5 }}>TeamBATOK</strong>
             </div>
-            <span>Provincial Government of Kalinga & Philippine Statistics Authority • {APP_VERSION}</span>
+            <span className="footer-version-text">{APP_VERSION}</span>
           </div>
         </footer>
 

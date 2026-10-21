@@ -12,6 +12,8 @@ export default function CustomTooltip({ active, payload, label, suffix }) {
     sexRatio = ((Math.abs(male.value) / Math.abs(female.value)) * 100).toFixed(1);
   }
 
+  const isPyramid = Boolean(male && female);
+
   return (
     <div style={{
       background: 'rgba(15, 23, 42, 0.96)',
@@ -37,24 +39,28 @@ export default function CustomTooltip({ active, payload, label, suffix }) {
       }}>
         {typeof label === 'number' && !label.toString().includes('.') ? `Census Year ${label}` : label}
       </div>
-      {payload.map((p, i) => (
-        <div key={i} style={{
-          color: COLORS.cream,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 14,
-          margin: '3px 0'
-        }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: p.color || p.fill || COLORS.creamDim }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.color || p.fill, flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{p.name}:</span>
-          </span>
-          <span style={{ fontWeight: 700, color: COLORS.cream, flexShrink: 0 }}>
-            {fmt(Math.abs(p.value))}{suffix || ''}
-          </span>
-        </div>
-      ))}
+      {payload.map((p, i) => {
+        const val = isPyramid ? Math.abs(p.value) : p.value;
+        const prefix = (!isPyramid && suffix === '%' && p.value > 0) ? '+' : '';
+        return (
+          <div key={i} style={{
+            color: COLORS.cream,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 14,
+            margin: '3px 0'
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: p.color || p.fill || COLORS.creamDim }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.color || p.fill, flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{p.name}:</span>
+            </span>
+            <span style={{ fontWeight: 700, color: COLORS.cream, flexShrink: 0 }}>
+              {prefix}{fmt(val)}{suffix || ''}
+            </span>
+          </div>
+        );
+      })}
       {sexRatio && (
         <div style={{
           color: COLORS.creamDim,

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Map, ArrowRight, Sparkles, Info } from 'lucide-react';
+import { Map, ArrowRight, Sparkles, Info, ExternalLink } from 'lucide-react';
 import { COLORS, fmt, growthRate } from '../../utils/formatters';
 import { DATA } from '../../data/kalingaData';
 
@@ -369,7 +369,7 @@ export default function KalingaMap({ onSelectMuni, selectedMuni }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.purple }}>
                     {fmt(selectedData.num_households)}
                   </div>
-                  <div style={{ fontSize: 10.5, color: COLORS.creamDim }}>registered families</div>
+                  <div style={{ fontSize: 10.5, color: COLORS.creamDim }}>households</div>
                 </div>
 
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 10px', borderRadius: 8 }}>
@@ -448,7 +448,33 @@ export default function KalingaMap({ onSelectMuni, selectedMuni }) {
             <Info size={13} style={{ color: COLORS.cyan, flexShrink: 0 }} />
             <span>Map Source & Boundary Disclaimer</span>
           </div>
-          <span style={{ color: COLORS.creamSub, fontSize: 11 }}>Source: Wikimedia Commons (Kalinga Reference Map)</span>
+          <a
+            href="https://bcl.wikipedia.org/wiki/Ladawan:Kalinga_Labelled_Map.png"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Kalinga Labelled Reference Map on Wikipedia"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              color: COLORS.cyan,
+              fontSize: 11,
+              textDecoration: 'none',
+              transition: 'opacity 0.2s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.textDecoration = 'underline';
+              e.currentTarget.style.opacity = '0.85';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textDecoration = 'none';
+              e.currentTarget.style.opacity = '1';
+            }}
+          >
+            <span>Source: Wikipedia (Kalinga Reference Map)</span>
+            <ExternalLink size={11} style={{ flexShrink: 0 }} />
+          </a>
         </div>
         <div style={{ color: COLORS.creamSub, fontSize: 10.5 }}>
           <strong>Disclaimer:</strong> This map visualization is provided solely for demographic representation and statistical illustration within this dashboard. It does not constitute an official cadastral, legal, or geodetic survey and will not replace, alter, or define any existing city or municipal administrative boundaries in the respective Local Government Units (LGUs).
