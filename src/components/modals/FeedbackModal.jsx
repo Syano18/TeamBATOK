@@ -112,7 +112,7 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
             <input
               type="text"
               required
-              placeholder="e.g. Maria Santos"
+              placeholder="e.g. Katimban Jimmog"
               value={reviewForm.name}
               onChange={(e) => setReviewForm(prev => ({ ...prev, name: e.target.value }))}
               style={{
@@ -133,7 +133,7 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
               <label style={{ display: 'block', color: COLORS.creamDim, fontSize: 11.5, marginBottom: 4 }}>Email (Optional)</label>
               <input
                 type="email"
-                placeholder="name@agency.gov.ph"
+                placeholder="name@gmail.com"
                 value={reviewForm.email}
                 onChange={(e) => setReviewForm(prev => ({ ...prev, email: e.target.value }))}
                 style={{
@@ -152,7 +152,7 @@ export default function FeedbackModal({ isOpen, onClose, onSuccess }) {
               <label style={{ display: 'block', color: COLORS.creamDim, fontSize: 11.5, marginBottom: 4 }}>Contact No. (Optional)</label>
               <input
                 type="text"
-                placeholder="0917-000-0000"
+                placeholder="09170000000"
                 value={reviewForm.contact}
                 onChange={(e) => setReviewForm(prev => ({ ...prev, contact: e.target.value }))}
                 style={{

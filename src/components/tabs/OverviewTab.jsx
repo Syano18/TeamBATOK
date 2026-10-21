@@ -155,7 +155,7 @@ export default function OverviewTab({ onNavigateToLgu }) {
               <Sparkles size={16} />
             </div>
             <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.cream, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              Key Census Takeaways • Executive Narrative
+              Key Census Takeaways
             </span>
           </div>
           <span style={{
